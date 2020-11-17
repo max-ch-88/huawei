@@ -1,0 +1,79 @@
+[R1]
+dialer-rule
+dialer-rule 1 ip permit
+interface Dialer 1
+link-protocol ppp
+ppp pap local-user HuaweiR1 password cipher R1
+ip address ppp-negotiate
+dialer user HuaweiR1
+dialer bundle 1
+dialer-group 1
+interface GigabitEthernet0/0/0
+pppoe-client dial-bundle-number 1
+ip ro 0.0.0.0 0.0.0.0 1.1.1.1
+
+
+[R2]
+ip pool pool1
+gateway-list 1.1.1.1
+network 1.1.1.0 mask 24
+aaa
+local-user HuaweiR1 password cipher R1
+local-user HuaweiR1 service-type ppp
+interface Virtual-Template 0
+ppp authentication-mode pap
+remote address pool pool1
+ip address 1.1.1.1 24
+int gi0/0/0
+pppoe-server bind virtual-template 0
+
+aaa
+local-user Huawei password cipher Hello
+local-user Huawei service-type ppp
+int Mp-group 0/0/0
+ip address 20.1.1.1 24
+int ser 1/0/0
+link-protocol ppp
+ppp authentication-mode pap
+ppp mp Mp-group 0/0/0
+int ser 1/0/1
+link-protocol ppp
+ppp authentication-mode pap
+ppp mp Mp-group 0/0/0
+
+ip ro 10.1.1.0 255.255.255.0 20.1.1.2
+
+[R3]
+int Mp-group 0/0/0
+ip addr 20.1.1.2 24
+int ser0/0/0
+link-protocol ppp
+ppp pap local-user Huawei password cipher Hello
+ppp mp Mp-group 0/0/0
+int ser0/0/1
+link-protocol ppp
+ppp pap local-user Huawei password cipher Hello
+ppp mp Mp-group 0/0/0
+
+int Ip-Trunk 1
+ip addr 10.1.1.1 24
+int ser0/0/2
+link-protocol hdlc
+ip-trunk 1
+int ser0/0/3
+link-protocol hdlc
+ip-trunk 1
+
+ip ro 1.1.1.0 255.255.255.0 20.1.1.1
+
+[R4]
+int Ip-Trunk 1
+ip addr 10.1.1.2 24
+int ser0/0/2
+link-protocol hdlc
+ip-trunk 1
+int ser0/0/3
+link-protocol hdlc
+ip-trunk 1
+
+ip ro 0.0.0.0 0.0.0.0 10.1.1.1

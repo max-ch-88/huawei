@@ -1,0 +1,214 @@
+R1
+sys
+sys R1
+
+int gi0/0/0
+ip add 10.13.1.1 24
+
+int loop0
+ip add	192.168.1.1 24
+
+ospf
+area 0
+network 10.13.1.1 0.0.0.0
+network 192.168.1.1 0.0.0.0
+
+======================================
+
+sys
+sys R2
+
+int gi0/0/0
+ip add 10.23.1.1 24
+
+int loop0
+ip add	192.168.4.1 24
+
+ospf
+area 0
+network 10.23.1.1 0.0.0.0
+network 192.168.4.1 0.0.0.0
+
+==========================================
+
+sys
+sys R3
+
+int gi0/0/0
+ip add 10.13.1.2 24
+
+int gi0/0/1
+ip add 10.23.1.2 24
+
+int gi0/0/2
+ip add 10.43.1.2 24
+
+ospf
+area 0
+network 10.13.1.2 0.0.0.0
+network 10.23.1.2 0.0.0.0
+network 10.43.1.2 0.0.0.0
+
+=========================================
+
+
+
+
+R4
+sys
+sys R4
+
+int gi0/0/0
+ip add 10.43.1.1 24
+
+int loop0
+ip add	172.16.1.1 24
+
+int loop1
+ip add	172.16.2.1 24
+
+int loop2
+ip add	172.16.3.1 24
+
+ospf
+area 0
+network 10.43.1.1 0.0.0.0
+network 172.16.1.1 0.0.0.0
+network 172.16.2.1 0.0.0.0
+network 172.16.3.1 0.0.0.0
+
+==================================================
+Task 1
+R1
+
+time-range monday 08:00 to 18:00 Mon
+
+acl number 3000
+rule 5 permit udp source-port  range 7501 7600 time-range monday
+
+traffic classifier UDP operator or
+if-match acl 3000
+
+traffic behavior 5M
+car cir 5120
+
+traffic policy CIR5M
+classifier UDP behavior 5M
+
+interface GigabitEthernet0/0/0
+traffic-policy CIR5M outbound
+
+--------------------------
+Task 2
+R2
+
+acl number 3001
+rule 5 permit ip destination 172.16.1.0 0.0.0.255
+
+acl number 3002
+rule 5 permit ip destination 172.16.2.0 0.0.0.255
+
+acl number 3003
+rule 5 permit ip destination 172.16.3.0 0.0.0.255
+
+acl number 3004
+rule 5 permit ip source 192.168.4.0 0.0.0.255
+
+----
+
+traffic classifier Office operator or
+if-match acl 3004
+
+traffic classifier Realtime operator or
+if-match acl 3001
+
+traffic classifier Signaling operator or
+if-match acl 3002
+
+traffic classifier Monitoring operator or
+if-match acl 3003
+
+-----
+traffic behavior mark1
+remark 8021p 1
+
+traffic behavior mark4
+remark 8021p 4
+
+traffic behavior mark3
+remark 8021p 3
+
+traffic behavior mark5
+remark 8021p 5
+----
+
+
+traffic policy qos
+classifier Office behavior mark1
+classifier Monitoring behavior mark3
+classifier Signaling behavior mark4
+classifier Realtime behavior mark5
+
+interface GigabitEthernet0/0/1
+traffic-policy qos outbound
+
+-----------------------------------------------------------------
+R3
+
+traffic classifier Office operator or
+if-match 8021p 1
+traffic classifier Monitoring operator or
+if-match 8021p 3
+traffic classifier Signaling operator or
+if-match 8021p 4
+traffic classifier Realtime  operator or
+if-match 8021p 5
+
+traffic behavior cs2
+remark dscp cs2
+traffic behavior cs4
+remark dscp cs4
+traffic behavior cs3
+remark dscp cs3
+traffic behavior ef
+remark dscp ef
+
+traffic policy qos1
+classifier Office behavior cs2
+classifier Monitoring behavior cs3
+classifier Signaling  behavior cs4
+classifier Realtime behavior ef
+
+interface GigabitEthernet0/0/1
+trust 8021p
+traffic-policy qos1 inbound
+
+----------------------------
+
+Task 3
+R3
+qos queue-profile queue1
+queue 0 weight 3
+queue 2 weight 7
+queue 3 weight 20
+queue 4 weight 60
+schedule wfq 0 to 4 pq 5
+
+interface GigabitEthernet0/0/2
+qos queue-profile queue1
+
+---------------------------
+Task 4
+
+R3
+
+drop-profile 1
+wred dscp
+dscp default low-limit 30 high-limit 60 discard-percentage 60
+dscp cs2 low-limit 45 high-limit 70 discard-percentage 60
+dscp cs3 low-limit 50 high-limit 80 discard-percentage 50
+dscp cs4 low-limit 60 high-limit 100 discard-percentage 50
+
+qos queue-profile queue1
+queue 0 drop-profile 1
+queue 2 to 4 drop-profile 1

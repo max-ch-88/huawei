@@ -1,0 +1,57 @@
+[R3]
+bfd
+q
+bfd VRRP bind peer-ip 10.1.35.2 int gi0/0/1 sou 10.1.35.1 auto
+
+bgp 100
+ pee 1.1.1.1 as 100
+ pee 1.1.1.1 conn loo0
+ pee 1.1.1.1 reflect-c
+ pee 2.2.2.2 as 100
+ pee 2.2.2.2 conn loo0
+ pee 2.2.2.2 reflect-c
+ pee 4.4.4.4 as 100
+ pee 4.4.4.4 conn loo0
+ pee 4.4.4.4 reflect-c
+ pee 5.5.5.5 as 100
+ pee 5.5.5.5 conn loo0
+ pee 5.5.5.5 reflect-c
+ pee 5.5.5.5 bfd en
+
+[R1]
+bgp 100
+ pee 3.3.3.3 as 100
+ pee 3.3.3.3 conn loo0
+ net 10.1.100.0 24
+
+[R2]
+bgp 100
+ pee 3.3.3.3 as 100
+ pee 3.3.3.3 conn loo0
+
+
+[R4]
+int gi0/0/1
+ vrrp vrid 1 virt 10.1.200.3
+bgp 100
+ pee 3.3.3.3 as 100
+ pee 3.3.3.3 conn loo0
+ net 10.1.200.0 24
+
+[R5]
+bfd
+q
+bfd VRRP bind peer-ip 10.1.35.1 int gi0/0/2 sou 10.1.35.2 auto
+
+int gi0/0/1
+ vrrp vrid 1 virt 10.1.200.3
+ vrrp vrid 1 prio 120
+ vrrp vrid 1 track bfd-session session-name VRRP reduced 30
+
+bgp 100
+ pee 3.3.3.3 as 100
+ pee 3.3.3.3 conn loo0
+ pee 3.3.3.3 bfd en
+ net 10.1.200.0 24
+
+

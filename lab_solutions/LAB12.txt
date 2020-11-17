@@ -1,0 +1,64 @@
+acl 2000
+rule per sou 232.1.1.0 0.0.0.255
+q
+pim
+ssm-policy 2000
+
+
+[R1]
+multicast ro
+int gi0/0/1
+pim sm
+int gi0/0/2
+pim sm
+int loo0
+pim sm
+
+[R2]
+multicast ro
+int gi0/0/1
+pim sm
+int gi0/0/2
+pim sm
+int loo0
+pim sm
+
+[SW1]
+multicast ro
+int lo0
+pim sm
+int vlan 10
+pim sm
+int vlan 20
+pim sm
+int vlan 40
+pim sm
+int vlan 50
+pim sm
+
+[SW2]
+multicast ro
+igmp
+ver 3
+int lo0
+pim sm
+int vlan 10
+pim sm
+int vlan 100
+pim sm
+igmp en
+igmp ver 3
+
+[SW3]
+multicast ro
+igmp
+ver 3
+int lo0
+pim sm
+int vlan 20
+pim sm
+int vlan 200
+pim sm
+igmp en
+igmp ver 3
+

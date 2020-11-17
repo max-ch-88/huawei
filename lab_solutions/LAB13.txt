@@ -1,0 +1,56 @@
+[R1]
+multicast ipv ro
+int gi0/0/1
+pim ipv sm
+int gi0/0/2
+pim ipv sm
+mld en
+mld static-g FF1E::1 sou 3003::100
+int gi0/0/3
+pim ipv sm
+
+
+[R2]
+multicast ipv ro
+int gi0/0/1
+pim ipv sm
+int gi0/0/2
+pim ipv sm
+mld en
+mld static-g FF1E::1 sou 3003::100
+
+[R3]
+multicast ipv ro
+int gi0/0/1
+pim ipv sm
+mld en
+mld static-g FF1E::1 sou 3003::100
+int gi0/0/2
+pim ipv sm
+
+[R4]
+multicast ipv ro
+int gi0/0/0
+pim ipv sm
+int gi0/0/1
+pim ipv sm
+int gi0/0/3
+pim ipv sm
+
+
+[R5]
+multicast ipv ro
+int gi0/0/0
+pim ipv sm
+int gi0/0/1
+pim ipv sm
+int gi0/0/2
+pim ipv sm
+int gi0/0/3
+pim ipv sm
+
+acl ipv 2001
+rule per sou ff1e:: 112
+pim-ipv
+c-rp 2005::2 gr 2001
+c-bsr 2005::2

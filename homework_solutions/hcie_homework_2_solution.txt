@@ -1,0 +1,276 @@
+Configuration tasks:
+
+1. Configure IS-IS for IPv4 and IPv6 in AS 2 on routers R1-R6 for interfaces loopback0 and 
+for gigabitethernet interfaces (exclude ge0/0/1 by R1 and R2).
+
+R1-R6
+isis 1
+ is-level level-2
+ cost-style wide
+ network-entity 49.0001.0000.0000.000X.00
+ 
+ ipv6 enable topology ipv6
+
+
+interface GigabitEthernet0/0/0
+ isis enable 1
+ isis ipv6 enable 1
+ isis circuit-type p2p
+ isis circuit-level level-2
+
+(except R1 and R2)
+interface GigabitEthernet0/0/1
+  isis enable 1
+ isis ipv6 enable 1
+ isis circuit-type p2p
+ isis circuit-level level-2
+  
+interface GigabitEthernet0/0/2
+ isis enable 1
+ isis ipv6 enable 1
+ isis circuit-type p2p
+ isis circuit-level level-2
+
+interface LoopBack0
+ isis enable 1
+ isis ipv6 enable 1
+ isis circuit-level level-2
+
+
+======================================================================
+
+2.Configure in AS 2 on routers R1, R2, R4, R5, R6 BGP neighbor relathionship with R3 using loopback0 ip address. 
+R3 must be RR.
+When routers R1, R2, R4, R5, R6 announcing an update to the router R3 should change next-hop address to own loopback0 address.
+On R5 and R6 advertise network gi0/0/2 interface (192.168.55.0/24 and 192.168.66.0/24) to BGP.
+
+R1, R2, R4
+
+bgp 2
+ peer 172.16.1.3 as-number 2 
+ peer 172.16.1.3 connect-interface LoopBack0 
+ 
+ ipv4-family unicast
+  undo synchronization
+  peer 172.16.1.3 enable
+  peer 172.16.1.3 next-hop-local 
+  
+R5
+bgp 2
+ peer 172.16.1.3 as-number 2 
+ peer 172.16.1.3 connect-interface LoopBack0
+ 
+ ipv4-family unicast
+  undo synchronization
+  network 192.168.55.0 
+  peer 172.16.1.3 enable
+  peer 172.16.1.3 next-hop-local 
+
+R6
+bgp 2
+ peer 172.16.1.3 as-number 2 
+ peer 172.16.1.3 connect-interface LoopBack0
+ 
+ ipv4-family unicast
+  undo synchronization
+  network 192.168.66.0 
+  peer 172.16.1.3 enable
+  peer 172.16.1.3 next-hop-local 
+-----------
+R3
+bgp 2
+ group RR internal
+ peer RR connect-interface LoopBack0
+ peer 172.16.1.1 as-number 2 
+ peer 172.16.1.1 group RR 
+ peer 172.16.1.2 as-number 2 
+ peer 172.16.1.2 group RR 
+ peer 172.16.1.4 as-number 2 
+ peer 172.16.1.4 group RR 
+ peer 172.16.1.5 as-number 2 
+ peer 172.16.1.5 group RR 
+ peer 172.16.1.6 as-number 2 
+ peer 172.16.1.6 group RR 
+  
+ ipv4-family unicast
+  undo synchronization
+  peer RR enable
+  peer RR reflect-client
+  peer 172.16.1.1 enable
+  peer 172.16.1.1 group RR 
+  peer 172.16.1.2 enable
+  peer 172.16.1.2 group RR 
+  peer 172.16.1.4 enable
+  peer 172.16.1.4 group RR 
+  peer 172.16.1.5 enable
+  peer 172.16.1.5 group RR 
+  peer 172.16.1.6 enable
+  peer 172.16.1.6 group RR
+
+3. Between R7 located in AS1 and R1 and also between R7 and R2 configure neighbor eBGP relathionship with  using loopback0 ip address.
+R1
+ip route-static 172.16.1.7 255.255.255.255 192.168.17.7
+
+R2
+ip route-static 172.16.1.7 255.255.255.255 192.168.27.7
+
+
+R1-R2
+
+bgp 2
+ peer 172.16.1.7 as-number 1 
+ peer 172.16.1.7 ebgp-max-hop 2 
+ peer 172.16.1.7 connect-interface LoopBack0
+ 
+ ipv4-family unicast
+  peer 172.16.1.7 enable
+ 
+
+R7
+
+ip route-static 172.16.1.1 255.255.255.255 192.168.17.1
+ip route-static 172.16.1.2 255.255.255.255 192.168.27.2
+
+bgp 1
+ peer 172.16.1.1 as-number 2 
+ peer 172.16.1.1 ebgp-max-hop 2 
+ peer 172.16.1.1 connect-interface LoopBack0
+ peer 172.16.1.2 as-number 2 
+ peer 172.16.1.2 ebgp-max-hop 2 
+ peer 172.16.1.2 connect-interface LoopBack0
+ 
+ ipv4-family unicast
+  undo synchronization
+  network 10.10.1.0 255.255.255.0 
+  network 10.10.2.0 255.255.255.0 
+  network 10.10.3.0 255.255.255.0 
+  network 10.10.4.0 255.255.255.0 
+  network 195.1.1.0 
+  network 200.0.0.0 
+  peer 172.16.1.1 enable
+  peer 172.16.1.2 enable
+
+=================================================================================================
+4.Modify the BGP  attribute on routers in AS2, so that when PC1 and PC2 access the non-directly 
+connected network segments 10.10.X.0/24 (networks) on R7, 
+R5 and R6 preferentially select R1 as the next top if X is an odd number, 
+or preferentially select R2  as the next hop if X is an even number. 
+Consistency of the round-trip paths does not need to be considered.
+Consider what are the possible configuration options to solve this problem.
+
+
+R1
+acl number 2000  
+ rule 5 permit source 10.10.1.0 0.0.254.255
+
+route-policy FROM_R7 permit node 10 
+ if-match acl 2000 
+ apply local-preference 200 
+
+route-policy FROM_R7 permit node 100 
+
+bgp 2
+ ipv4-family unicast
+  peer 172.16.1.7 route-policy FROM_R7 import 
+
+-----------------------------------------------------
+R2
+
+acl number 2000  
+ rule 5 permit source 10.10.0.0 0.0.254.255 
+
+route-policy FROM_R7 permit node 10 
+ if-match acl 2000 
+ apply local-preference 200 
+
+route-policy FROM_R7 permit node 100 
+
+bgp 2
+ ipv4-family unicast
+  peer 172.16.1.7 route-policy FROM_R7 import 
+
+------------------------------------------------------
+Optional step (When Consistency of the round-trip paths does need to be considered.)
+R7
+
+ip local policy-based-route PBR
+
+acl number 2000  
+ rule 5 permit source 10.10.1.0 0.0.254.255 
+acl number 2001  
+ rule 5 permit source 10.10.0.0 0.0.254.255 
+
+policy-based-route PBR permit node 10
+ if-match acl 2000
+ apply ip-address next-hop 192.168.17.1  
+
+policy-based-route PBR permit node 20
+ if-match acl 2001
+ apply ip-address next-hop 192.168.27.2  
+
+
+
+==============================================================
+
+5.Configure R1 and R7 to establish an EBGP4+ (IPv6 address-family) peer relationship through the direct link, 
+configure R1 and R3 to establish an IBGP4+ (IPv6 address-family)  peer relationship through the loopback 0. 
+IPv6 addresses preconfigured on R7, R1, R3.
+(See IPv6 address on all routers used command display ipv6 int brief )
+
+
+R7
+ 
+bgp 1
+ peer 2000:BD8:0:17::1 as-number 2 
+ 
+ ipv6-family unicast
+  peer 2000:BD8:0:17::1 enable
+
+-------------------------
+
+R1
+ipv6 route-static 2000:BD8:0:1::3 128 2000:BD8:0:13::3 
+bgp 2
+ peer 2000:BD8:0:1::3 as-number 2 
+ peer 2000:BD8:0:1::3 connect-interface LoopBack0
+ peer 2000:BD8:0:17::7 as-number 1 
+
+ ipv6-family unicast
+  undo synchronization
+  peer 2000:BD8:0:1::3 enable
+  peer 2000:BD8:0:1::3 next-hop-local 
+  peer 2000:BD8:0:1::7 enable
+
+----------------------------
+R3 
+ipv6 route-static 2000:BD8:0:1::1 128 2000:BD8:0:13::1 
+bgp 2
+ peer 2000:BD8:0:1::1 as-number 2 
+ peer 2000:BD8:0:1::1 connect-interface LoopBack0
+ 
+ ipv6-family unicast
+  undo synchronization
+  peer 2000:BD8:0:1::1 enable
+  
+
+
+=========================================================================================
+
+6. On R3, import IS-IS IPv6 routes to BGP4+ and on R1 advertise only the route with the prefix of 
+2000:BD8:0:55:/64  and 2000:BD8:0:66:/64 to R7 with filter-policy command. 
+(See IPv6 address on all routers used command display ipv6 int brief )
+
+R3 
+bgp 2
+ ipv6-family unicast
+  import-route isis 1
+-------------------------------
+R1
+
+acl ipv6 number 2000  
+ rule 5 permit source 2000:BD8:0:55::/64 
+ rule 10 permit source 2000:BD8:0:66::/64
+
+bgp 2
+ ipv6-family unicast
+  peer 2000:BD8:0:17::7 filter-policy 2000 export

@@ -1,0 +1,98 @@
+[R1]
+ospfv3 1 
+router-id 1.1.1.1
+int gi0/0/0
+ospfv3 1 area 0
+int gi0/0/1
+ospfv3 1 area 2
+int gi0/0/2
+ospfv3 1 area 1
+
+[R2]
+ospfv3 1 
+router-id 2.2.2.2
+int gi0/0/0
+ospfv3 1 area 0
+int gi0/0/1
+ospfv3 1 area 3
+
+[R3]
+ospfv3 1 
+router-id 3.3.3.3
+import-ro direct
+int gi0/0/1
+ospfv3 1 area 2
+
+acl ipv6 2000
+rule deny source 2006::/64
+rule permit
+ospfv3 1
+fil 2000 import
+
+[R4]
+sysname R4
+ipv6
+int gi0/0/1
+ipv6 en
+ipv6 add 2024::4 64
+int gi0/0/0
+ipv6 en
+ipv6 add 2006::1 64
+int gi0/0/2
+ipv6 en
+ipv6 add 2003::1 64
+
+ospfv3 1
+router-id 4.4.4.4
+import-ro direct
+int gi0/0/1
+ospfv3 1 area 3
+
+acl ipv6 2000
+rule deny source 2004::/64
+rule permit
+ospfv3 1
+fil 2000 import
+
+[R5]
+ospfv3 1 
+router-id 5.5.5.5
+int gi0/0/2
+ospfv3 1 area 1
+
+isis 1
+ipv6 en
+is-lev level-1-2
+netw 10.0000.0000.0005.00
+ipv6 import-route ospfv3 1
+int gi0/0/1
+isis ipv6 en
+
+ospfv3 1 
+import-route isis 1
+
+acl ipv6 2000
+rule deny source 2005:: 64
+rule permit
+ospfv3 1
+fil 2000 export
+
+[R6]
+isis 1
+ipv6 en
+is-lev level-1-2
+netw 10.0000.0000.0006.00
+ipv6 def level-1
+int gi0/0/1
+isis ipv6 en
+int gi0/0/2
+isis ipv6 en
+
+[R7]
+isis 1
+ipv6 en
+is-lev level-1
+netw 10.0000.0000.0007.00
+ipv6 import-route direct level-1
+int gi0/0/2
+isis ipv6 en

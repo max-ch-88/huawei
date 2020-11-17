@@ -1,0 +1,160 @@
+
+[CE1]
+bgp 65001
+ pee 10.1.1.2 as 100
+ net 11.11.11.11 32
+
+[PE1]
+mpls lsr 1.1.1.1
+mpls
+mpls ldp
+int gi0/0/0
+mpls
+mpls ldp
+
+ip vpn-ins huawei
+ route-d 100:1
+ vpn-t 100:1 both
+int gi0/0/1
+ ip bind vpn-ins huawei
+ ip addr 10.1.1.2 30
+
+bgp 100
+ pee 7.7.7.7 as 100
+ pee 7.7.7.7 conn loo0
+ ipv4-f vpnv4
+  pee 7.7.7.7 en 
+ ipv4-f vpn-ins huawei
+  pee 10.1.1.1 as 65001
+ 
+[P1]
+int loo0
+ip addr 2.2.2.2 32
+
+mpls lsr 2.2.2.2
+mpls
+mpls ldp
+int gi0/0/0
+mpls
+mpls ldp
+int gi0/0/1
+mpls
+mpls ldp
+
+[RR1]
+bgp 100
+ pee 1.1.1.1 as 100
+ pee 1.1.1.1 conn loo0
+ pee 8.8.8.8 as 200
+ pee 8.8.8.8 conn loo0
+ pee 8.8.8.8 ebgp-max 10
+ ipv4-f vpnv4
+  undo policy vpn-t
+  pee 1.1.1.1 en
+  pee 1.1.1.1 reflect-c
+  pee 1.1.1.1 next-hop-inv
+  pee 8.8.8.8 en
+  pee 8.8.8.8 next-hop-inv
+
+[ASBR1]
+mpls lsr 3.3.3.3
+mpls
+ lsp-trigger bgp-label-route
+ mpls ldp
+int gi0/0/0
+ip addr 34.34.34.1 30
+mpls
+int gi0/0/1
+mpls
+ mpls ldp
+
+route-p pol_label per node 10
+ appl mpls-label
+
+bgp 100
+ peer 34.34.34.2 as 200
+ peer 34.34.34.2 label-route-cap
+ peer 34.34.34.2 route-p pol_label exp
+ net 1.1.1.1 32
+
+ospf
+ imp bgp
+
+[ASBR2]
+mpls lsr 4.4.4.4
+mpls
+ lsp-trigger bgp-label-route
+ mpls ldp
+int gi0/0/0
+ip addr 34.34.34.2 30
+mpls
+int gi0/0/1
+mpls
+mpls ldp
+
+route-p pol_label per node 10
+ appl mpls-label
+
+bgp 200
+ peer 34.34.34.1 as 100
+ peer 34.34.34.1 label-route-cap
+ peer 34.34.34.1 route-p pol_label exp
+ net 6.6.6.6 32
+
+ospf
+ imp bgp
+
+[P2]
+mpls lsr 5.5.5.5
+mpls
+mpls ldp
+int gi0/0/0
+mpls
+mpls ldp
+int gi0/0/1
+mpls
+mpls ldp
+
+[RR2]
+bgp 200
+ pee 6.6.6.6 as 200
+ pee 6.6.6.6 conn loo0
+ pee 7.7.7.7 as 100
+ pee 7.7.7.7 conn loo0
+ pee 7.7.7.7 ebgp-max 10
+ ipv4-f vpnv4
+  undo policy vpn-t
+  pee 6.6.6.6 en
+  pee 6.6.6.6 reflect-c
+  pee 6.6.6.6 next-hop-inv
+  pee 7.7.7.7 en
+  pee 7.7.7.7 next-hop-inv
+
+[PE2]
+mpls lsr 6.6.6.6
+mpls
+mpls ldp
+int gi0/0/0
+mpls
+mpls ldp
+
+ip vpn-ins huawei
+ route-d 100:1
+ vpn-t 100:1 both
+int gi0/0/1
+ ip bind vpn-ins huawei
+ ip addr 20.1.1.1 30
+
+bgp 200
+ pee 8.8.8.8 as 200
+ pee 8.8.8.8 conn loo0
+ ipv4-f vpnv4
+  pee 8.8.8.8 en 
+ ipv4-f vpn-ins huawei
+ peer 20.1.1.2 as 65002
+
+[CE2]
+bgp 65002
+ pee 20.1.1.1 as 200
+ net 22.22.22.22 32
+

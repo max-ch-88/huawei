@@ -1,0 +1,59 @@
+[R3]
+route-policy O_to_I deny node 10 
+ if-m tag 100
+route-policy O_to_I permit node 20
+ appl tag 200
+
+route-policy I_to_O deny node 10 
+ if-m tag 300
+route-policy I_to_O permit node 20 
+ appl tag 400
+
+route-policy O_to_I_Pref permit node 10
+if-match tag 100 
+ appl preference 13
+
+ospf 1
+default cost inherit-metric
+imp isis type 1 route-p I_to_O
+pref ase route-p O_to_I_Pref 150
+
+isis 1
+cost-style wide
+imp ospf inherit-cost route-policy O_to_I
+
+
+[R4]
+route-policy O_to_I deny node 10 
+ if-m tag 400
+route-policy O_to_I permit node 20
+ appl tag 300
+
+route-policy I_to_O deny node 10 
+ if-m tag 200
+route-policy I_to_O permit node 20 
+ appl tag 100
+
+route-policy O_to_I_Pref permit node 10
+if-match tag 100 
+ appl preference 13
+
+ospf 1
+default cost inherit-metric
+imp isis type 1 route-p I_to_O
+pref ase route-p O_to_I_Pref 150
+
+isis 1
+cost-style wide
+imp ospf inherit-cost route-policy O_to_I
+
+
+[R6]
+ip ip-prefix permit_lo index 10 permit 172.16.0.6 32
+
+route-policy permit_lo permit node 10 
+if-match ip-prefix permit_lo 
+
+ospf 1
+import-route direct type 1 tag 100 route-policy permit_lo
+

@@ -1,0 +1,16 @@
+Configuration tasks:
+
+1.BGP peer relationships are established between AR1 and AR3 and 
+between AR2 and AR4 through the directly connected interfaces. (pre-configured).
+
+2.Between AR1 and AR6 and also between AR1 and AR2 ISIS peer relationships are established . (pre-configured).
+
+3. Between AR5 and AR3 and also between AR5 and AR4 ISIS peer relationships are established . (pre-configured).
+
+
+4.4.On AR1-AR3, and AR2-AR4 configure bi-directional route importing between IS-IS and BGP 
+for addresses of Loopback 1-4 interfaces R6 in AS 1 and R5 in AS 2. 
+Assume that the addresses of Loopback 1-4 interfaces  in AS 1 and AS 2 are on the network segment 172.16.X.Y/32. 
+If Y is an odd number, traffic is preferentially transmitted through AR1 and AR3 when device  in an AS accesses Loopback 1-4 in the peer AS. 
+If Y is an even number, traffic is preferentially transmitted through AR2 and AR4 when device in an AS accesses Loopback 1-4 in the peer AS. 
+The configuration should have the best scalability to solve issue caused by dual-node bi-directional route importing.

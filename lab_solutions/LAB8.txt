@@ -1,0 +1,266 @@
+[R1]
+ospfv3 1
+ router-id 10.100.1.1
+ospf 1 router-id 10.100.1.1 
+
+interface GigabitEthernet0/0/0
+ ipv6 enable 
+ ip address 10.0.12.1 255.255.255.0 
+ ipv6 address 2000::1200:1/120 
+ ospfv3 1 area 0.0.0.0
+ ospf enable 1 area 0.0.0.0
+
+interface GigabitEthernet0/0/1
+ ipv6 enable 
+ ip address 10.0.13.1 255.255.255.0 
+ ipv6 address 2000::1300:1/120 
+ ospfv3 1 area 0.0.0.0
+ ospf enable 1 area 0.0.0.0
+
+interface GigabitEthernet2/0/0
+ ipv6 enable 
+ ip address 10.0.14.1 255.255.255.0 
+ ipv6 address 2000::1400:1/120 
+interface LoopBack0
+ ipv6 enable 
+ ip address 10.100.1.1 255.255.255.255 
+ ipv6 address 2000:100::1/128 
+ ospfv3 1 area 0.0.0.0
+ ospf enable 1 area 0.0.0.0
+
+bgp 100
+router-id 10.100.1.1
+peer 10.0.14.4 as-number 200
+peer 10.0.14.4 password cipher Huawei
+peer 2000::1400:4 as-number 200
+peer 2000::1400:4 password cipher Huawei
+peer 2000:100::2 as-number 100
+peer 2000:100::2 connect-interface LoopBack 0
+peer 2000:100::3 as-number 100
+peer 2000:100::3 connect-interface LoopBack 0
+peer 10.100.2.2 as-number 100 
+peer 10.100.2.2 connect-interface Loopback 0
+peer 10.100.2.2 next-hop-local
+peer 10.100.3.3 as-number 100 
+peer 10.100.3.3 connect-interface Loopback 0
+peer 10.100.3.3 next-hop-local 
+ipv6-family unicast 
+peer 2000::1400:4 enable
+peer 2000:100::2 enable
+peer 2000:100::2 next-hop-local
+peer 2000:100::3 enable
+peer 2000:100::3 next-hop-local
+
+ip ip-prefix LOOPBACKS index 10 permit 10.0.0.0 16 greater-equal 32 less-equal 32
+ip ipv6-prefix LOOPBACKS index 10 permit 2000:100:: 64 greater-equal 128 less-equal 128
+route-policy LOOPBACKS_TO_BGP permit node 10
+if-match ip-prefix LOOPBACK
+if-match ipv6 address prefix-list LOOPBACKS
+bgp 100
+import-route ospf 1 route-policy LOOPBACKS_TO_BGP 
+ipv6-family unicast 
+import-route ospfv3 1 route-policy LOOPBACKS_TO_BGP
+
+ip as-path-filter FROM_AS_400 deny _400_
+ip as-path-filter FROM_AS_400 permit .*
+bgp 100
+peer 10.0.14.4 as-path-filter FROM_AS_400 export
+ipv6-family unicast 
+peer 2000::1400:4 as-path-filter FROM_AS_400 export
+
+ip ipv6-prefix 51 permit 2000:0:0:51:: 64 
+route-policy 51 permit node 10
+if-match ipv6 address prefix-list 51
+apply local-preference 200 
+route-policy 51 permit node 20
+bgp 100
+ipv6-family unicast
+peer 2000::1400:4 route-policy 51 import
+
+ip ip-prefix PREPEND_FOR_40 index 10 permit 10.40.0.0 24 greater-equal 24 less-equal 24
+route-policy PREPEND_FOR_40 permit node 10
+if-match ip-prefix PREPEND_FOR_40
+apply as-path 100 100 100 additive
+route-policy PREPEND_FOR_40 permit node 100
+bgp 100
+ipv4-family unicast
+peer 10.0.14.4 route-policy PREPEND_FOR_40 export
+
+
+[R2]
+ospfv3 1
+ router-id 10.100.2.2
+ospf 1 
+ area 0.0.0.0 
+
+interface GigabitEthernet0/0/0
+ ipv6 enable 
+ ip address 10.0.12.2 255.255.255.0 
+ ipv6 address 2000::1200:2/120 
+ ospfv3 1 area 0.0.0.0
+ ospf enable 1 area 0.0.0.0
+
+interface GigabitEthernet0/0/1
+ ipv6 enable 
+ ip address 10.0.23.2 255.255.255.0 
+ ipv6 address 2000::2300:2/120 
+ ospfv3 1 area 0.0.0.0
+ ospf enable 1 area 0.0.0.0
+
+interface GigabitEthernet2/0/0
+ ipv6 enable 
+ ip address 10.0.26.2 255.255.255.0 
+ ipv6 address 2000::2600:2/120 
+
+interface LoopBack0
+ ipv6 enable 
+ ip address 10.100.2.2 255.255.255.255 
+ ipv6 address 2000:100::2/128 
+ ospfv3 1 area 0.0.0.0
+ ospf enable 1 area 0.0.0.0
+
+bgp 100
+router-id 10.100.2.2
+peer 10.0.26.6 as-number 400
+peer 2000::2600:6 as-number 400
+peer 2000:100::1 as-number 100
+peer 2000:100::1 connect-interface LoopBack 0
+peer 2000:100::3 as-number 100
+peer 2000:100::3 connect-interface LoopBack 0
+peer 10.100.1.1 as-number 100 
+peer 10.100.1.1 connect-interface Loopback 0
+peer 10.100.1.1 next-hop-local
+peer 10.100.3.3 as-number 100 
+peer 10.100.3.3 connect-interface Loopback 0
+peer 10.100.3.3 next-hop-local 
+ipv6-family unicast 
+peer 2000::2600:6 enable
+peer 2000:100::1 enable
+peer 2000:100::1 next-hop-local
+peer 2000:100::3 enable
+peer 2000:100::3 next-hop-local
+
+ip ip-prefix LOOPBACKS index 10 permit 10.0.0.0 16 greater-equal 32 less-equal 32
+ip ipv6-prefix LOOPBACKS index 10 permit 2000:100:: 64 greater-equal 128 less-equal 128
+route-policy LOOPBACKS_TO_BGP permit node 10
+if-match ip-prefix LOOPBACK
+if-match ipv6 address prefix-list LOOPBACKS
+bgp 100
+import-route ospf 1 route-policy LOOPBACKS_TO_BGP 
+ipv6-family unicast 
+import-route ospfv3 1 route-policy LOOPBACKS_TO_BGP
+
+ip as-path-filter FROM_AS_200 deny _200_
+ip as-path-filter FROM_AS_200 permit .*
+bgp 100
+peer 10.0.26.6 as-path-filter FROM_AS_200 export
+ipv6-family unicast 
+peer 2000::2600:6 as-path-filter FROM_AS_200 export
+
+ip ipv6-prefix 52 permit 2000:0:0:52:: 64 
+route-policy 52 permit node 10
+if-match ipv6 address prefix-list 51
+apply local-preference 200 
+route-policy 52 permit node 20
+bgp 100
+ipv6-family unicast
+peer 2000::2600:6 route-policy 52 import
+
+ip ip-prefix PREPEND_FOR_20 index 10 permit 10.20.0.0 24 greater-equal 24 less-equal 24
+route-policy PREPEND_FOR_20 permit node 10
+if-match ip-prefix PREPEND_FOR_20
+apply as-path 100 100 100 additive
+route-policy PREPEND_FOR_20 permit node 100
+bgp 100
+ipv4-family unicast
+peer 10.0.26.6 route-policy PREPEND_FOR_20 export
+
+
+[R3]
+interface LoopBack0
+ ipv6 enable 
+ ip address 10.100.3.3 255.255.255.255 
+ ipv6 address 2000:100::3/128 
+ ospfv3 1 area 0.0.0.0
+ ospf enable 1 area 0.0.0.0
+
+bgp 100
+router-id 10.100.3.3
+peer 2000:100::1 as-number 100
+peer 2000:100::1 connect-interface LoopBack 0
+peer 2000:100::2 as-number 100
+peer 2000:100::2 connect-interface LoopBack 0
+peer 10.100.1.1 as-number 100 
+peer 10.100.1.1 connect-interface Loopback 0
+peer 10.100.1.1 next-hop-local
+peer 10.100.2.2 as-number 100 
+peer 10.100.2.2 connect-interface Loopback 0
+peer 10.100.2.2 next-hop-local 
+ipv6-family unicast 
+peer 2000:100::1 enable
+peer 2000:100::1 next-hop-local
+peer 2000:100::2 enable
+peer 2000:100::2 next-hop-local
+
+ip ip-prefix LOOPBACK index 10 permit 10.20.0.0 24
+ip ip-prefix LOOPBACK index 20 permit 10.40.0.0 24 
+ip ip-prefix LOOPBACK index 100 deny 0.0.0.0 0 less-equal 32
+route-policy TO_BGP permit node 10
+if-match ip-prefix LOOPBACK
+route-policy TO_BGP deny node 100
+bgp 100
+import-route direct route-policy TO_BGP 
+
+
+[R4]
+bgp 200
+router-id 10.0.4.4
+peer 10.0.14.1 as-number 100 
+peer 10.0.14.1 password cipher Huawei
+peer 2000::1400:1 as-number 100 
+peer 2000::1400:1 password cipher Huawei
+peer 10.0.45.5 as-number 300 
+peer 2000::4500:5 as-number 300 
+network 10.0.4.4 32
+ipv6-family 
+network 2000::4 128
+
+ipv6-family unicast
+peer 2000::1400:1 enable
+peer 2000::4500:5 enable
+
+
+
+
+[R5]
+bgp 300
+router-id 10.0.5.5
+peer 10.0.45.4 as-number 200 
+peer 2000::4500:4 as-number 200 
+peer 10.0.56.6 as-number 400 
+peer 2000::5600:6 as-number 400 
+network 10.0.5.5 32
+ipv6-family 
+network 2000::5 128
+network 2000:0:0:51::1 64
+network 2000:0:0:52::1 64
+
+ipv6-family unicast
+peer 2000::4500:4 enable
+peer 2000::5600:6 enable
+
+[R6]
+bgp 400
+router-id 10.0.6.6
+peer 10.0.26.2 as-number 100 
+peer 2000::2600:2 as-number 100 
+peer 10.0.56.5 as-number 300 
+peer 2000::5600:5 as-number 300 
+network 10.0.6.6 32
+ipv6-family 
+network 2000::6 128
+
+ipv6-family unicast
+peer 2000::2600:2 enable
+peer 2000::5600:5 enable
+

@@ -1,0 +1,243 @@
+[R1]
+isis 1
+ipv6 en
+net 02.0000.0000.0001.00
+int lo0
+isis en 1
+isis ipv en 1
+int gi0/0/0
+isis en 1
+isis ipv en 1
+int gi0/0/2
+isis en 1
+isis ipv en 1
+
+ip route- 172.16.1.7 32 192.168.17.7
+ip ipv 55_66 ind 10 per 2000:BD8:0:55:: 64
+ip ipv 55_66 ind 20 per 2000:BD8:0:66:: 64
+
+bgp 2
+router 172.16.1.1
+peer 172.16.1.3 as 2
+peer 172.16.1.3 conn lo0
+peer 172.16.1.3 next-hop-l
+peer 172.16.1.3 en
+peer 172.16.1.7 as 1
+peer 172.16.1.7 conn lo0
+peer 172.16.1.7 ebgp-max-hop 2
+peer 172.16.1.7 en
+peer 2000:BD8:0:17::7 as 1
+peer 2000:BD8:0:17::7 conn gi0/0/1
+peer 2000:BD8:0:17::7 as 1
+peer 2000:BD8:0:17::7 conn gi0/0/1
+peer 2000:BD8:0:1::3 as 2
+peer 2000:BD8:0:1::3 conn lo0
+ipv6-f uni
+peer 2000:BD8:0:17::7 en
+peer 2000:BD8:0:1::3 en
+filter-policy ipv6-pr 55_66 exp
+
+[R2]
+isis 1
+ipv6 en
+net 02.0000.0000.0002.00
+int lo0
+isis en 1
+isis ipv en 1
+int gi0/0/0
+isis en 1
+isis ipv en 1
+int gi0/0/2
+isis en 1
+isis ipv en 1
+
+ip route- 172.16.1.7 32 192.168.27.7
+
+bgp 2
+router 172.16.1.2
+peer 172.16.1.3 as 2
+peer 172.16.1.3 conn lo0
+peer 172.16.1.3 next-hop-l
+peer 172.16.1.3 en
+peer 172.16.1.7 as 1
+peer 172.16.1.7 conn lo0
+peer 172.16.1.7 ebgp-max-hop 2
+peer 172.16.1.7 en
+
+ip ip-prefix 10_even ind 10 per 10.10.2.0 24
+ip ip-prefix 10_even ind 20 per 10.10.4.0 24
+
+route-policy even_pref per no 10
+if ip-p 10_even
+ap lo 120
+route-policy even_pref per no 20
+bgp 2
+peer 172.16.1.7 route-policy even_pref imp
+
+#acl number 2000
+# rule 2 permit source 10.10.1.0 0.0.0.255
+# rule 4 permit source 10.10.3.0 0.0.0.255
+
+#ip ip-prefix 10_odd ind 10 per 10.10.1.0 24
+#ip ip-prefix 10_odd ind 20 per 10.10.3.0 24
+
+#route-policy odd_pref per no 10
+#if ip-p 10_odd
+#ap lo 120
+#route-policy odd_pref per no 20
+
+[R3]
+isis 1
+ipv6 en
+net 02.0000.0000.0003.00
+int lo0
+isis en 1
+isis ipv en 1
+int gi0/0/0
+isis en 1
+isis ipv en 1
+int gi0/0/1
+isis en 1
+isis ipv en 1
+int gi0/0/2
+isis en 1
+isis ipv en 1
+bgp 2
+router 172.16.1.3
+peer 172.16.1.1 as 2
+peer 172.16.1.1 conn lo0
+peer 172.16.1.1 next-hop-l
+peer 172.16.1.2 as 2
+peer 172.16.1.2 conn lo0
+peer 172.16.1.2 next-hop-l
+peer 172.16.1.4 as 2
+peer 172.16.1.4 conn lo0
+peer 172.16.1.4 next-hop-l
+peer 172.16.1.5 as 2
+peer 172.16.1.5 conn lo0
+peer 172.16.1.5 next-hop-l
+peer 172.16.1.6 as 2
+peer 172.16.1.6 conn lo0
+peer 172.16.1.6 next-hop-l
+peer 172.16.1.1 reflect-client
+peer 172.16.1.2 reflect-client
+peer 172.16.1.4 reflect-client
+peer 172.16.1.5 reflect-client
+peer 172.16.1.6 reflect-client
+peer 172.16.1.1 en
+peer 172.16.1.2 en
+peer 172.16.1.4 en
+peer 172.16.1.5 en
+peer 172.16.1.6 en
+peer 2000:BD8:0:1::1 as 2
+peer 2000:BD8:0:1::1 conn lo0
+ipv6-f uni
+peer 2000:BD8:0:1::1 en
+imp isis 1 
+
+[R4]
+isis 1
+ipv6 en
+net 02.0000.0000.0004.00
+int lo0
+isis en 1
+isis ipv en 1
+int gi0/0/0
+isis en 1
+isis ipv en 1
+int gi0/0/1
+isis en 1
+isis ipv en 1
+int gi0/0/2
+isis en 1
+isis ipv en 1
+bgp 2
+router 172.16.1.4
+peer 172.16.1.3 as 2
+peer 172.16.1.3 conn lo0
+peer 172.16.1.3 next-hop-l
+peer 172.16.1.3 en
+
+[R5]
+isis 1
+ipv6 en
+net 02.0000.0000.0005.00
+int lo0
+isis en 1
+isis ipv en 1
+int gi0/0/0
+isis en 1
+isis ipv en 1
+int gi0/0/2
+isis en 1
+isis ipv en 1
+bgp 2
+router 172.16.1.5
+peer 172.16.1.3 as 2
+peer 172.16.1.3 conn lo0
+peer 172.16.1.3 next-hop-l
+peer 172.16.1.3 en
+net 192.168.55.0 24
+
+[R6]
+isis 1
+ipv6 en
+net 02.0000.0000.0006.00
+int lo0
+isis en 1
+isis ipv en 1
+int gi0/0/0
+isis en 1
+isis ipv en 1
+int gi0/0/2
+isis en 1
+isis ipv en 1
+bgp 2
+router 172.16.1.6
+peer 172.16.1.3 as 2
+peer 172.16.1.3 conn lo0
+peer 172.16.1.3 next-hop-l
+peer 172.16.1.3 en
+net 192.168.66.0 24
+
+[R7]
+ipv6
+int gi0/0/0
+ip addr 192.168.17.7 24
+ipv6 en
+ipv6 addr 2000:BD8:0:17::7 64
+int gi0/0/1
+ip addr 192.168.27.7 24
+int lo0
+ip addr 172.16.1.7 32
+int lo1
+ip addr 10.10.1.1 24
+int lo2
+ip addr 10.10.2.1 24
+int lo3
+ip addr 10.10.3.1 24
+int lo4
+ip addr 10.10.4.1 24
+int lo5
+ip addr 195.1.1.1 24
+int lo6
+ip addr 200.0.0.1 24
+
+ip route- 172.16.1.1 32 192.168.17.1
+ip route- 172.16.1.2 32 192.168.27.2
+
+bgp 1
+router 172.16.1.7
+imp dir
+peer 172.16.1.1 as 2
+peer 172.16.1.1 conn lo0
+peer 172.16.1.1 en
+peer 172.16.1.1 ebgp-max-hop 2
+peer 172.16.1.2 as 2
+peer 172.16.1.2 conn lo0
+peer 172.16.1.2 en
+peer 172.16.1.2 ebgp-max-hop 2
+peer 2000:BD8:0:17::1 as 2
+peer 2000:BD8:0:17::1 conn gi0/0/0
+ipv6-f uni
+peer 2000:BD8:0:17::1 en

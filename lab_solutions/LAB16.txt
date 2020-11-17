@@ -1,0 +1,203 @@
+[RR1]
+bgp 100
+ peer 1.1.1.1 as-num 100
+ peer 1.1.1.1 conn loo0
+ peer 1.1.1.1 reflect
+ peer 1.1.1.1 label-route-capability
+ peer 2.2.2.2 as-num 100
+ peer 2.2.2.2 conn loo0
+ peer 2.2.2.2 reflect
+ peer 3.3.3.3 as-num 100
+ peer 3.3.3.3 conn loo0
+ peer 3.3.3.3 reflect
+ peer 3.3.3.3 label-route-capability
+ peer 8.8.8.8 as-num 200
+ peer 8.8.8.8 conn loo0
+ peer 8.8.8.8 ebgp-max 10
+ ipv4-f vpnv4
+  undo pol vpn
+  peer 1.1.1.1 en
+  peer 1.1.1.1 next-hop-invariable
+  peer 1.1.1.1 reflect
+  peer 8.8.8.8 en
+  peer 8.8.8.8 next-hop-invariable
+  
+
+[CE1]
+bgp 65001
+ peer 10.1.1.2 as-num 100
+ net 11.11.11.11 32
+
+[PE1]
+mpls lsr 1.1.1.1
+mpls
+ mpls ldp
+
+ip vpn-ins huawei
+ route-d 100:1
+ vpn-t 100:1 both
+
+int gi0/0/0
+mpls
+ mpls ldp
+int gi0/0/1
+ ip bind vpn-ins huawei
+ ip addr 10.1.1.2 30
+
+bgp 100
+ peer 7.7.7.7 as-num 100
+ peer 7.7.7.7 conn loo0
+ peer 7.7.7.7 label-route-capability
+ ipv4-f vpn-ins huawei
+  peer 10.1.1.1 as-num 65001
+ ipv4-f vpnv4
+  peer 7.7.7.7 en
+
+[P1]
+mpls lsr 2.2.2.2
+mpls
+ mpls ldp
+
+int loo0
+ip addr 2.2.2.2 32
+int gi0/0/0
+mpls
+ mpls ldp
+int gi0/0/1
+mpls
+ mpls ldp
+
+bgp 100
+ peer 7.7.7.7 as-num 100
+ peer 7.7.7.7 conn loo0
+
+[ASBR1]
+mpls lsr 3.3.3.3
+mpls
+ mpls ldp
+
+route-p policy1 per node 10
+ app mpls-label
+
+route-p policy2 per node 10
+ if-m mpls-label
+  app mpls-label
+
+bgp 100
+ peer 7.7.7.7 as-num 100
+ peer 7.7.7.7 conn loo0
+ peer 7.7.7.7 label-route-capability
+ peer 7.7.7.7 route-p policy2 export
+ peer 34.34.34.2 as-num 200
+ peer 34.34.34.2 label-route-capability
+ peer 34.34.34.2 route-p policy1 export
+ net 1.1.1.1 32
+ net 7.7.7.7 32
+
+int gi0/0/0
+ip addr 34.34.34.1 30
+mpls
+int gi0/0/1
+mpls
+ mpls ldp
+
+[ASBR2]
+mpls lsr 4.4.4.4
+mpls
+ mpls ldp
+
+route-p policy1 per node 10
+ app mpls-label
+
+route-p policy2 per node 10
+ if-m mpls-label
+  app mpls-label
+
+bgp 200
+ peer 8.8.8.8 as-num 200
+ peer 8.8.8.8 conn loo0
+ peer 8.8.8.8 label-route-capability
+ peer 8.8.8.8 route-p policy2 export
+ peer 34.34.34.1 as-num 100
+ peer 34.34.34.1 label-route-capability
+ peer 34.34.34.1 route-p policy1 export
+ net 6.6.6.6 32
+ net 8.8.8.8 32
+
+int gi0/0/0
+ip addr 34.34.34.2 30
+mpls
+int gi0/0/1
+mpls
+ mpls ldp
+
+[P2]
+mpls lsr 5.5.5.5
+mpls
+ mpls ldp
+
+int gi0/0/0
+mpls
+ mpls ldp
+int gi0/0/1
+mpls
+ mpls ldp
+
+bgp 200
+ peer 8.8.8.8 as-num 200
+ peer 8.8.8.8 conn loo0
+
+[PE2]
+mpls lsr 6.6.6.6
+mpls
+ mpls ldp
+
+ip vpn-ins huawei
+ route-d 100:1
+ vpn-t 100:1 both
+
+int gi0/0/0
+mpls
+ mpls ldp
+int gi0/0/1
+ ip bind vpn-ins huawei
+ ip addr 20.1.1.1 30
+
+bgp 200
+ peer 8.8.8.8 as-num 200
+ peer 8.8.8.8 conn loo0
+ peer 8.8.8.8 label-route-capability
+ ipv4-f vpn-ins huawei
+  peer 20.1.1.2 as-num 65002
+ ipv4-f vpnv4
+  peer 8.8.8.8 en
+
+[CE2]
+bgp 65002
+ peer 20.1.1.1 as-num 200
+ net 22.22.22.22 32
+
+[RR2]
+bgp 200
+ peer 4.4.4.4 as-num 200
+ peer 4.4.4.4 conn loo0
+ peer 4.4.4.4 reflect
+ peer 4.4.4.4 label-route-capability
+ peer 5.5.5.5 as-num 200
+ peer 5.5.5.5 conn loo0
+ peer 5.5.5.5 reflect
+ peer 6.6.6.6 as-num 200
+ peer 6.6.6.6 conn loo0
+ peer 6.6.6.6 reflect
+ peer 6.6.6.6 label-route-capability
+ peer 7.7.7.7 as-num 100
+ peer 7.7.7.7 conn loo0
+ peer 7.7.7.7 ebgp-max 10
+ ipv4-f vpnv4
+  undo pol vpn
+  peer 6.6.6.6 en
+  peer 6.6.6.6 next-hop-invariable
+  peer 6.6.6.6 reflect
+  peer 7.7.7.7 en
+  peer 7.7.7.7 next-hop-invariable
+

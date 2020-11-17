@@ -1,0 +1,70 @@
+[R1]
+mpls lsr 1.1.1.1
+mpls
+mpls ldp
+
+ip vpn-ins VPN1
+route-distinguisher 1:1
+vpn-target 1:2 both
+int ser0/0/1
+mpls
+mpls ldp
+int ser0/0/3
+ip bind vpn-ins VPN1
+ip addr 10.1.14.1 24
+
+bgp 123
+peer 3.3.3.3 as 123
+peer 3.3.3.3 conn lo0
+ipv4-f vpnv4 uni
+peer 3.3.3.3 en
+ipv4-f vpn-ins VPN1
+peer 10.1.14.4 as 14
+
+
+[R2]
+mpls lsr 2.2.2.2
+mpls
+mpls ldp
+
+int ser0/0/1
+mpls
+mpls ldp
+int ser0/0/2
+mpls
+mpls ldp
+
+
+[R3]
+mpls lsr 3.3.3.3
+mpls
+mpls ldp
+
+ip vpn-ins VPN2
+route-distinguisher 2:2
+vpn-target 1:2 both
+int ser0/0/2
+mpls
+mpls ldp
+int ser0/0/3
+ip bind vpn-ins VPN2
+ip addr 10.1.35.3 24
+
+bgp 123
+peer 1.1.1.1 as 123
+peer 1.1.1.1 conn lo0
+ipv4-f vpnv4 uni
+peer 1.1.1.1 en
+ipv4-f vpn-ins VPN2
+peer 10.1.35.5 as 35
+
+[R4]
+bgp 14
+peer 10.1.14.1 as 123
+net 192.168.1.0 24
+
+[R5]
+bgp 35
+peer 10.1.35.3 as 123
+net 192.168.2.0 24
+

@@ -1,0 +1,34 @@
+[R1]
+mpls lsr 2.2.2.2
+mpls
+mpls ldp
+int se0/0/1
+mpls
+lsp-trigger all
+mpls ldp
+
+ip ip-pr prefix1 per 10.0.12.0 24
+mpls ldp
+inbound pe 3.3.3.3 fec ip-p prefix1
+
+[R2]
+mpls lsr 3.3.3.3
+mpls
+mpls ldp
+int se0/0/1
+mpls
+mpls ldp
+int se0/0/2
+mpls
+lsp-trigger all
+mpls ldp
+
+
+[R3]
+mpls lsr 4.4.4.4
+mpls
+mpls ldp
+int se0/0/2
+mpls
+lsp-trigger all
+mpls ldp

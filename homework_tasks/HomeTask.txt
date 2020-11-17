@@ -1,0 +1,33 @@
+Configuration tasks:
+
+1. Configure between SW1 and SW2 Eth-trunk in LACP mode with load balance traffic based 
+on source and destination MAC address.
+
+2.Configure the link type of interfaces connecting between all switches to trunk, 
+and configure the interfaces to allow packets of all VLANs except VLANs 1, 100, 200 to pass through.
+
+
+3.Configure all switches to run MSTP. Configure the mapping between VLAN 11 and MSTI 11, and configure SW1 as primary root bridge and SW2 as secondary root bridge. 
+Configure the mapping between VLAN 12 and MSTI12, and configure SW2 as the primary root bridge and SW1 as secondary root bridge. 
+Set the MST region name to LAB, and set the revision level of the MST region to 5.
+
+4. On all other interfaces except the interconnection interfaces between switches configure edge ports.
+
+5. Configure VRRP group  on R1 and R2 is assigned the virtual IP address 192.168.11.1, and functions as the gateway for PC1. 
+R1 periodically sends gratuitous ARP packets with sender IP address as 192.168.11.1 and source MAC address as 00-00-5E-00-01-0B. 
+The data frames transmitted between PC1 and the gateway are tagged with VLAN 11 (PC sends and receives
+untagged frames).
+
+6. Configure VRRP group  on R1 and R2 is assigned the virtual IP address 192.168.12.1, and functions as the gateway for PC2. 
+R2 periodically sends gratuitous ARP packets with sender IP address as 192.168.12.1 and source MAC address as 00-00-5E-00-01-0C. 
+The data frames transmitted between PC2 and the gateway are tagged with VLAN 12 (PC sends and receives
+untagged frames).
+
+7. The router acting as the VRRP master should become master again 3 minute after interface GE0/0/1 goes Up.
+
+8.Configure on R1, R2, R3 OSPF for links between routers and loopbacks interfaces. Disable loopbacks interfaces from sending and  receiving ospf hello packets.
+
+9.(Optional step)Configure NAT on R1 and R2 to translate the private IP address segments 192.168.11.0/24 and 192.168.12.0/24  
+to public IP addresses in the range from 200.1.1.101 to 200.1.1.199 on R1 and in the range from 200.2.2.101 to 200.2.2.199 on R2. 
+Configure R1 and R2 to access the Internet (Ip address loopback R3)  through GE0/0/2. 
+Configure dedicated public IP address 200.1.1.100  for PC1 and 200.2.2.100  for PC2 that provides FTP and HTTP services for the Internet.

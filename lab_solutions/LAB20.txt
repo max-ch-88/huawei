@@ -1,0 +1,55 @@
+dis traf pol user
+dis traffic-p app
+
+[AR1]
+acl 3002
+ rule per ip sou 192.168.10.0 0.0.0.255
+acl 3003
+ rule per ip sou 192.168.20.0 0.0.0.255
+acl 3004
+ rule per ip sou 192.168.30.0 0.0.0.255
+
+traf class C1
+ if-m acl 3002
+traf class C2
+ if-m acl 3003
+traf class C3
+ if-m acl 3004
+
+traf beh b1
+ remark dscp ef
+traf beh b2
+ remark dscp af41
+traf beh b3
+ remark dscp af31
+
+traf pol p1
+ class C1 beh b1
+ class C2 beh b2
+ class C3 beh b3
+ 
+traf class voice
+ if-m dscp ef
+traf class video
+ if-m dscp af41
+traf class data
+ if-m dscp af31
+
+traf beh voice
+ queue ef bandwidth pct 50
+traf beh video
+ queue ef bandwidth pct 40
+traf beh data
+ queue ef bandwidth pct 5
+
+traf pol schedule
+ class data beh data
+ class video beh video
+ class voice beh voice
+
+int eth0/0/4
+ traffic-pol p1 inbound
+
+int gi0/0/1
+ traffic-pol schedule outbound
+

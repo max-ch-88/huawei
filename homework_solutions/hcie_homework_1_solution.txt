@@ -1,0 +1,271 @@
+Configuration tasks:
+
+1. Configure between SW1 and SW2 Eth-trunk in LACP mode with load balance traffic based 
+on source and destination MAC address.
+
+SW1/2
+
+interface Eth-Trunk0
+ mode lacp-static
+ load-balance src-dst-mac
+
+interface GigabitEthernet0/0/12
+ eth-trunk 0
+
+interface GigabitEthernet0/0/13
+ eth-trunk 0
+
+================================================================================================
+
+2.Configure the link type of interfaces connecting between all switches to trunk, 
+and configure the interfaces to allow packets of all VLANs except VLANs 1, 100, 200 to pass through.
+
+
+SW1/2
+interface Eth-Trunk0
+ port link-type trunk
+ undo port trunk allow-pass vlan 1
+ port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ undo port trunk allow-pass vlan 1
+ port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+interface GigabitEthernet0/0/2
+ port link-type trunk
+ undo port trunk allow-pass vlan 1
+ port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+----------------
+
+SW3/4
+
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ undo port trunk allow-pass vlan 1
+ port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+interface GigabitEthernet0/0/2
+ port link-type trunk
+ undo port trunk allow-pass vlan 1
+ port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+=============================================================================================
+
+3.Configure all switches to run MSTP. 
+Configure the mapping between VLAN 11 and MSTI 11, and configure SW1 as primary root bridge 
+and SW2 as secondary root bridge. 
+Configure the mapping between VLAN 12 and MSTI12, and configure SW2 as the primary root bridge 
+and SW1 as secondary root bridge. 
+Set the MST region name to LAB, and set the revision level of the MST region to 5.
+
+SW1-4
+
+vlan batch 11 to 12
+stp region-configuration
+ region-name LAB
+ revision-level 5
+ instance 11 vlan 11 
+ instance 12 vlan 12 
+ active region-configuration
+
+-----------------------
+SW1
+
+stp instance 11 root primary
+stp instance 12 root secondary
+
+------------------------
+SW2
+
+stp instance 12 root primary
+stp instance 11 root secondary
+
+
+========================================================================================
+4. On all other interfaces except the interconnection interfaces between switches configure edge ports.
+
+SW1-4
+stp edged-port default
+
+interface gi0/0/1
+stp edged-port disable
+
+interface gi0/0/2
+stp edged-port disable
+
+SW1-SW2
+interface Eth-Trunk0
+stp edged-port disable
+
+interface gi0/0/5
+stp edged-port enable
+
+=================================================================================================
+
+5. Configure VRRP group  on R1 and R2 is assigned the virtual IP address 192.168.11.1, and functions as the gateway for PC1. 
+R1 periodically sends gratuitous ARP packets with sender IP address as 192.168.11.1 and source MAC address as 00-00-5E-00-01-0B. 
+The data frames transmitted between PC1 and the gateway are tagged with VLAN 11 (PC sends and receives
+untagged frames).
+
+R1
+
+interface GigabitEthernet0/0/1.11
+ dot1q termination vid 11
+ ip address 192.168.11.101 255.255.255.0 
+ vrrp vrid 11 virtual-ip 192.168.11.1
+ vrrp vrid 11 priority 200
+ arp broadcast enable
+
+? vrrp gratuitous-arp timeout 30
+
+
+R2
+
+interface GigabitEthernet0/0/1.11
+ dot1q termination vid 11
+ ip address 192.168.11.102 255.255.255.0 
+ vrrp vrid 11 virtual-ip 192.168.11.1
+ arp broadcast enable
+
+
+SW3
+vlan batch 11 to 12
+
+interface GigabitEthernet0/0/3
+ port link-type access
+ port default vlan 11
+
+
+
+=======================================================================================================
+6. Configure VRRP group  on R1 and R2 is assigned the virtual IP address 192.168.12.1, and functions as the gateway for PC2. 
+R2 periodically sends gratuitous ARP packets with sender IP address as 192.168.12.1 and source MAC address as 00-00-5E-00-01-0C. 
+The data frames transmitted between PC2 and the gateway are tagged with VLAN 12 (PC sends and receives
+untagged frames).
+
+
+R2
+
+interface GigabitEthernet0/0/1.12
+ dot1q termination vid 12
+ ip address 192.168.12.102 255.255.255.0 
+ vrrp vrid 12 virtual-ip 192.168.12.1
+ vrrp vrid 12 priority 200
+ arp broadcast enable
+
+? vrrp gratuitous-arp timeout 30
+
+R1
+interface GigabitEthernet0/0/1.12
+ dot1q termination vid 12
+ ip address 192.168.12.101 255.255.255.0 
+ vrrp vrid 12 virtual-ip 192.168.12.1
+ arp broadcast enable
+
+
+SW4
+vlan batch 11 to 12
+
+interface GigabitEthernet0/0/3
+ port link-type access
+ port default vlan 12
+
+================================================================================================
+
+7. The router acting as the VRRP master should become master again 3 minute after interface GE0/0/1 goes Up.
+
+R1
+
+interface GigabitEthernet0/0/1.11
+ vrrp vrid 11 preempt-mode timer delay 180
+
+R2
+
+interface GigabitEthernet0/0/1.12
+ vrrp vrid 12 preempt-mode timer delay 180
+
+====================================================================================================
+
+8.Configure on R1, R2, R3 OSPF for links between routers and loopbacks interfaces. 
+Disable loopbacks interfaces from sending and 
+receiving ospf hello packets.
+
+
+R1
+ospf 1 
+ silent-interface LoopBack0
+ area 0.0.0.0 
+  network 192.168.112.0 0.0.0.255 
+  network 192.168.113.0 0.0.0.255 
+  network 200.1.1.1 0.0.0.0 
+
+R2
+ospf 1 
+ silent-interface LoopBack0
+ area 0.0.0.0 
+  network 192.168.112.0 0.0.0.255 
+  network 192.168.223.0 0.0.0.255 
+  network 200.2.2.1 0.0.0.0 
+
+R3
+ospf 1 
+ silent-interface LoopBack0
+ area 0.0.0.0 
+  network 192.168.113.0 0.0.0.255 
+  network 192.168.223.0 0.0.0.255 
+  network 200.3.3.1 0.0.0.0 
+
+===========================================================================================
+
+===========================================================================================
+Optional
+9.Configure NAT on R1 and R2 to translate the private IP address segments 192.168.11.0/24 and 192.168.12.0/24  
+to public IP addresses in the range from 200.1.1.101 to 200.1.1.199 on R1 and in the range from 200.2.2.101 to 200.2.2.199 on R2. 
+Configure R1 and R2 to access the Internet (Ip address loopback R3)  through GE0/0/2. 
+Configure dedicated public IP address 200.1.1.100  for PC1 and 200.2.2.100  for PC2 
+that provides FTP and HTTP services for the Internet.
+
+R1
+
+acl number 2000  
+ rule 3 deny source 192.168.11.100 0.0.0.0
+ rule 5 permit source 192.168.11.0 0.0.0.255 
+ rule 10 permit source 192.168.12.0 0.0.0.255 
+
+ nat address-group 1 200.1.1.101 200.1.1.199
+
+interface GigabitEthernet0/0/2
+ nat server protocol tcp global 200.1.1.100 ftp inside 192.168.11.100 ftp
+ nat server protocol tcp global 200.1.1.100 www inside 192.168.11.100 www
+ nat outbound 2000 address-group 1 
+
+
+ip route-static 0.0.0.0 0.0.0.0 192.168.113.3
+
+
+-----------------------
+
+R2
+
+acl number 2000  
+ rule 5 permit source 192.168.11.0 0.0.0.255 
+ rule 10 permit source 192.168.12.0 0.0.0.255 
+
+ nat address-group 1 200.2.2.101 200.2.2.199
+
+interface GigabitEthernet0/0/2 
+ nat server protocol tcp global 200.2.2.100 ftp inside 192.168.12.100 ftp
+ nat server protocol tcp global 200.2.2.100 www inside 192.168.12.100 www
+ nat outbound 2000 address-group 1 
+
+
+ip route-static 0.0.0.0 0.0.0.0 192.168.223.3
+
+
+
+
+
+
+

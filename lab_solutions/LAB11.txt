@@ -1,0 +1,50 @@
+[RouterA]
+ospf 1
+area 0
+net 192.168.1.1 0.0.0.0
+net 192.168.3.1 0.0.0.0
+multicast ro
+int gi0/0/1
+pim sm
+int gi0/0/2
+pim sm
+q
+pim
+static-rp 192.168.1.1
+
+[RouterB]
+ospf 1
+area 0
+net 192.168.2.1 0.0.0.0
+net 192.168.3.2 0.0.0.0
+net 10.110.5.1 0.0.0.0
+multicast ro
+int gi0/0/1
+pim sm
+int gi0/0/2
+pim sm
+int gi0/0/3
+pim sm
+q
+pim
+static-rp 192.168.1.1
+
+
+[RouterC]
+ospf 1
+area 0
+net 192.168.2.2 0.0.0.0
+net 192.168.1.2 0.0.0.0
+net 10.110.2.1 0.0.0.0
+multicast ro
+int gi0/0/1
+pim sm
+int gi0/0/2
+pim sm
+igmp en
+int gi0/0/3
+pim sm
+q
+pim
+static-rp 192.168.1.1
+spt-switch-thres 1024

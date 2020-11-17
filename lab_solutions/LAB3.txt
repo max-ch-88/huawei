@@ -1,0 +1,48 @@
+ 
+Device 	Interface 	IP Address 	   
+PC1 	Eth0/0/1 	2002:C801:0101::1/64 	   
+R1 	G0/0/1 	200.1.1.1/24 	   
+G0/0/2 	2002:c801:0101::ffff/64 	   
+Internet 	G0/0/1 	200.1.1.2/24 	   
+G0/0/2 	200.2.2.1/24 	   
+R2 	G0/0/1 	2002:c802:0202::ffff 	   
+G0/0/2 	200.2.2.2/64 	   
+PC2 	Eth0/0/1 	2002:C802:0202::1 	 
+
+[R1]
+ipv6
+int gi0/0/2
+ipv6 en
+ipv6 addr 2002:c801:0101::ffff/64
+int gi0/0/1
+ip addr 200.1.1.1 24
+ip ro 0.0.0.0 0.0.0.0 200.1.1.2
+int Tunnel 0/0/0
+tunnel-protocol ipv6-ipv4 6to4
+ipv6 en
+source 200.1.1.1
+ipv6 addr auto link-local
+ipv6 route-static 2002:C802:0202:: 64 Tunnel 0/0/0
+
+[R2]
+ipv6
+int gi0/0/1
+ipv6 en
+ipv6 addr 2002:c802:0202::ffff/64
+int gi0/0/2
+ip addr 200.2.2.2 24
+ip ro 0.0.0.0 0.0.0.0 200.2.2.1
+int Tunnel 0/0/0
+tunnel-protocol ipv6-ipv4 6to4
+ipv6 en
+source 200.2.2.2
+ipv6 addr auto link-local
+ipv6 route-static 2002:C801:0101:: 64 Tunnel 0/0/0
+
+[Internet]
+sysname Internet
+int gi0/0/1
+ip addr 200.1.1.2 24
+int gi0/0/2
+ip addr 200.2.2.1 24
+

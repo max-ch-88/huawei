@@ -1,0 +1,128 @@
+
+
+route-policy isis_bgp permit node 10 
+if-match ip-prefix permit_172_16_1
+appl preference
+
+
+
+route-policy isis_bgp deny node 10 
+if-m tag 21
+route-policy isis_bgp permit node 20 
+if-match ip-prefix permit_172_16_1
+appl tag 12
+
+
+isis 1
+imp ospf inherit-cost route-policy isis_bgp
+
+
+filter-po 2000 exp sta
+appl preference 30
+preference route-policy odd_pref
+ip ip-prefix permit_172_16_1 index 10 permit 172.16.1.0 24 gr 32 le 32
+
+
+dis bgp ro pe 192.168.2.1  ad
+
+[R1]
+acl num 2001
+
+rule 5 per sou 172.16.1.1 0.0.0.254
+acl num 2002
+
+rule 5 per sou 172.16.1.2 0.0.0.254
+
+route-policy community per node 10 
+if acl 2001
+appl commu 11:21
+route-policy community per node 20 
+if acl 2002
+appl commu 12:22
+
+
+ip comm 1 per 21:11
+route-policy pref per node 10
+if comm 1
+appl preference 14
+route-policy pref per node 20
+
+bgp 1
+imp isis 1 rou community 
+preference route-policy pref
+
+isis 1
+imp bgp inh rou pref
+
+[R2]
+acl num 2000
+
+rule 5 per sou 172.16.2.2 0.0.0.254
+
+route-policy even_pref per node 10 
+if acl 2000
+appl preference 14
+
+ip ip-prefix permit_172_16_1 index 10 permit 172.16.1.0 24 gr 32 le 32
+bgp 1
+imp isis 1 rou permit_172_16_1
+preference route-policy even_pref
+
+isis 1
+imp bgp inh
+
+[R3]
+acl num 2001
+
+rule 5 per sou 172.16.2.1 0.0.0.254
+acl num 2002
+
+rule 5 per sou 172.16.2.2 0.0.0.254
+
+route-policy community per node 10 
+if acl 2001
+appl commu 21:11
+route-policy community per node 20 
+if acl 2002
+appl commu 22:12
+
+
+ip comm 1 per 11:21
+route-policy pref per node 10
+if comm 1
+appl preference 14
+route-policy pref per node 20
+
+bgp 2
+imp isis 1 rou community 
+preference route-policy pref
+pee 192.168.1.1 route-policy community export
+pee 192.168.1.1 advertise-community
+
+
+isis 1
+imp bgp inh rou pref
+
+
+[R4]
+ip ip-prefix permit_172_16_2 index 10 permit 172.16.2.0 24 gr 32 le 32
+
+acl num 2000
+
+rule 5 per sou 172.16.1.2 0.0.0.254
+
+route-policy even_pref per node 10 
+if acl 2000
+appl preference 14
+
+route-policy permit_172_16_2 per node 10
+if ip-p permit_172_16_2
+
+bgp 2
+imp isis 1 rou permit_172_16_2
+preference route-policy even_pref
+
+isis 1
+imp bgp inh
+
+

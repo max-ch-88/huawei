@@ -1,0 +1,14 @@
+Configuration tasks:
+
+1.Enable IS-IS on all Loopback 0 and interconnection interfaces of R1, R2, R3, R4.(pre-configured)
+
+2. Enable OSPF on R5 Loopback 0 and interconnection interfaces of R3 to R5, R5 to R6, R4 to R6.(pre-configured)
+
+3.Import the IP address of Loopback 0 on R6 to OSPF. 
+The route from each OSPF NE to Loopback 0 on R6 should contain the internal cost.
+ 
+4.On R3 and R4, import IS-IS and OSPF host routes with the prefix of 172.16.0.0/16 into each other. 
+The cost of the imported protocol needs to be inherited. 
+Loopback0 interfaces of R4 and R6 must communicate with each other through the optimal path. 
+The configuration should have the best scalability to solve issue caused by dual-node bi-directional route importing.
+

@@ -1,0 +1,71 @@
+stp region-configuration
+region-name RG1
+instance 1 vlan 2 to 10
+instance 2 vlan 11 to 20
+active region-configuration
+stp enable
+vlan batch 2 to 20
+stp pathcost-standard legacy
+
+
+
+[SwitchA]
+sysname SwitchA
+stp instance 1 root primary
+stp instance 2 root secondary
+interface gigabitethernet 0/0/1
+stp root-protection
+port link-type trunk
+port trunk allow-pass vlan 2 to 20
+interface Eth-Trunk 1
+trunkport gigabitethernet 0/0/2
+trunkport gigabitethernet 0/0/3
+port link-type trunk
+port trunk allow-pass vlan 2 to 20
+
+
+[SwitchB]
+sysname SwitchB
+stp instance 2 root primary
+stp instance 1 root secondary
+interface gigabitethernet 0/0/1
+stp root-protection
+port link-type trunk
+port trunk allow-pass vlan 2 to 20
+interface Eth-Trunk 1
+trunkport gigabitethernet 0/0/2
+trunkport gigabitethernet 0/0/3
+port link-type trunk
+port trunk allow-pass vlan 2 to 20
+
+
+[SwitchC]
+sysname SwitchC
+interface gigabitethernet 0/0/2
+stp instance 2 cost 20000
+port link-type trunk
+port trunk allow-pass vlan 2 to 20
+interface gigabitethernet 0/0/3
+port link-type trunk
+port trunk allow-pass vlan 2 to 20
+interface gigabitethernet 0/0/1
+port link-type access
+port default vlan 2
+stp edged-port enable
+stp bpdu-protection
+
+[SwitchD]
+sysname SwitchD
+interface gigabitethernet 0/0/2
+stp instance 2 cost 20000
+port link-type trunk
+port trunk allow-pass vlan 2 to 20
+interface gigabitethernet 0/0/3
+port link-type trunk
+port trunk allow-pass vlan 2 to 20
+interface gigabitethernet 0/0/1
+port link-type access
+port default vlan 11
+stp edged-port enable
+stp bpdu-protection
+

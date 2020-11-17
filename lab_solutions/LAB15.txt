@@ -1,0 +1,135 @@
+[ce1]
+bgp 65001
+ peer 10.1.1.2 as-num 100
+ net 11.11.11.11 32
+
+[pe1]
+mpls lsr-id 1.1.1.1
+mpls
+mpls ldp
+
+int gi0/0/0
+mpls
+mpls ldp
+
+ip vpn-ins huawei
+ route-d 100:1 
+  vpn-t 100:1 both
+
+bgp 100
+ peer 3.3.3.3 as-num 100
+ peer 3.3.3.3 conn loo0
+ peer 3.3.3.3 en
+ ipv4-f vpnv4
+  pol vpn
+  pe 3.3.3.3 en
+ ipv4-f vpn-ins huawei
+   peer 10.1.1.1 as-num 65001
+
+int gi0/0/1
+ ip bind vpn huawei
+ ip addr 10.1.1.2 255.255.255.252
+
+[p1]
+mpls lsr-id 2.2.2.2
+mpls
+mpls ldp
+
+interface LoopBack0
+ ip address 2.2.2.2 255.255.255.255
+int gi0/0/0
+ mpls
+  mpls ldp
+int gi0/0/1
+ mpls
+  mpls ldp
+
+
+[asbr1]
+mpls lsr-id 3.3.3.3
+mpls
+mpls ldp
+int gi0/0/1
+mpls
+mpls ldp
+
+bgp 100
+ peer 1.1.1.1 as-num 100
+ peer 1.1.1.1 conn loo0
+ peer 1.1.1.1 en
+ peer 34.34.34.2 as-num 200
+ ipv4-f vpnv4
+  peer 1.1.1.1 en
+  peer 34.34.34.2 en
+  undo pol vpn
+
+int gi0/0/0
+ ip addr 34.34.34.1 255.255.255.252
+ mpls
+
+[asbr2]
+mpls lsr-id 4.4.4.4
+mpls
+mpls ldp
+int gi0/0/1
+mpls
+mpls ldp
+
+bgp 200
+ peer 6.6.6.6 as-num 200
+ peer 6.6.6.6 conn loo0
+ peer 6.6.6.6 en
+ peer 34.34.34.1 as-num 100
+ ipv4-f vpnv4
+  undo pol vpn
+  peer 6.6.6.6 en
+  peer 34.34.34.1 en
+
+int gi0/0/0
+ ip addr 34.34.34.2 255.255.255.252
+ mpls
+
+[p2]
+mpls lsr-id 5.5.5.5
+mpls
+ mpls ldp
+
+int gi0/0/0
+ mpls
+ mpls ldp
+int gi0/0/1
+ mpls
+ mpls ldp
+
+
+[pe2]
+mpls lsr-id 6.6.6.6
+ mpls
+  mpls ldp
+
+int gi0/0/0
+ mpls
+  mpls ldp
+
+ip vpn-ins huawei
+ route-d 100:1 
+  vpn-t 100:1 both
+
+bgp 200
+ peer 4.4.4.4 as-num 200
+ peer 4.4.4.4 conn loo0
+ peer 4.4.4.4 en
+ ipv4-f vpnv4
+  pol vpn
+  pe 4.4.4.4 en
+ ipv4-f vpn-ins huawei
+  peer 20.1.1.2 as-num 65002
+
+int gi0/0/1
+ ip bind vpn huawei
+ ip add 20.1.1.1 255.255.255.252
+
+[ce2]
+bgp 65002
+ peer 20.1.1.1 as-num 200
+ net 22.22.22.22 32

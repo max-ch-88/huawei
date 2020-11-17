@@ -1,0 +1,176 @@
+[R1]
+isis 1
+net 01.0000.0000.0001.00
+is-l level-2
+cost-style wide
+
+int gi0/0/0
+isis en
+int loo0
+isis en
+
+ospf 1 router-id 1.1.1.1
+area 0
+net 1.1.1.1 0.0.0.0
+net 41.1.1.0 0.0.0.3
+int gi0/0/1
+ospf en 1 area 0
+
+acl 2000
+rule perm sou 192.168.1.0 0.0.0.255
+rule perm sou 192.168.2.0 0.0.0.255
+rule perm sou 192.168.3.0 0.0.0.255
+rule perm sou 192.168.4.0 0.0.0.255
+acl 2001
+rule perm sou 172.16.0.0 0.0.0.255
+rule perm sou 172.16.1.0 0.0.0.255
+rule perm sou 172.16.2.0 0.0.0.255
+rule perm sou 172.16.3.0 0.0.0.255
+
+
+route-policy isis_to_ospf deny node 5
+if-match tag 100
+route-policy isis_to_ospf perm no 10
+if acl 2000
+apply tag 200
+
+ospf 1
+imp isis rou isis_to_ospf
+
+route-policy ase perm no 10
+if acl 2001
+apply preference 13
+ospf 1
+preference ase ro ase 150
+
+route-policy ospf_to_isis deny node 5
+if-match tag 300
+route-policy ospf_to_isis permit node 10
+apply tag 400
+
+isis 1
+import-route ospf 1 route-policy ospf_to_isis
+
+[R2]
+isis 1
+net 01.0000.0000.0002.00
+is-l level-2
+cost-style wide
+int gi0/0/0
+isis en
+int loo0
+isis en
+
+ospf 1 router-id 2.2.2.2
+area 0
+net 2.2.2.2 0.0.0.0
+net 42.1.1.0 0.0.0.3
+int gi0/0/1
+ospf en 1 area 0
+
+acl 2000
+rule perm sou 192.168.1.0 0.0.0.255
+rule perm sou 192.168.2.0 0.0.0.255
+rule perm sou 192.168.3.0 0.0.0.255
+rule perm sou 192.168.4.0 0.0.0.255
+acl 2001
+rule perm sou 172.16.0.0 0.0.0.255
+rule perm sou 172.16.1.0 0.0.0.255
+rule perm sou 172.16.2.0 0.0.0.255
+rule perm sou 172.16.3.0 0.0.0.255
+
+route-policy ospf_to_isis deny node 5
+if-match tag 200
+route-policy ospf_to_isis perm no 10
+if acl 2001
+apply tag 100
+isis 1
+imp ospf rou ospf_to_isis
+
+route-policy ase perm no 10
+if acl 2001
+apply preference 13
+ospf 1
+preference ase ro ase 150
+
+route-policy isis_to_ospf deny node 5
+if-match tag 400
+route-policy isis_to_ospf permit node 10
+apply tag 300
+ospf 1
+import-route isis 1 route-policy isis_to_ospf
+
+
+[R3]
+isis 1
+net 01.0000.0000.0003.00
+is-l level-2
+cost-style wide
+int gi0/0/0
+isis en
+int gi0/0/1
+isis en
+int loo0
+isis en
+int loo1
+isis en
+int loo2
+isis en
+int loo3
+isis en
+int loo4
+isis en
+
+
+[R4]
+ospf 1 router-id 4.4.4.4
+area 0
+net 4.4.4.4 0.0.0.0
+net 41.1.1.0 0.0.0.3
+net 42.1.1.0 0.0.0.3
+area 1
+net 54.1.1.0 0.0.0.3
+net 54.2.2.0 0.0.0.3
+nssa no-sum
+int gi0/0/0
+ospf en 1 area 0
+int gi0/0/1
+ospf en 1 area 0
+int ser1/0/0
+ospf en 1 area 1
+int ser1/0/1
+ospf en 1 area 1
+
+
+[R5]
+ospf 1 router-id 5.5.5.5
+area 1
+net 5.5.5.5 0.0.0.0
+net 54.1.1.0 0.0.0.3
+net 54.2.2.0 0.0.0.3
+nssa
+int ser1/0/0
+ospf en 1 area 1
+int ser1/0/1
+ospf en 1 area 1
+
+ip ip-prefix R5 per 172.16.0.0 16 gr 24 le 24
+route-policy R5 per no 10
+if ip-p R5
+ospf 1
+imp dir rou R5
+
+ip local policy-based-route test
+acl number 2000
+rule 5 permit source 172.16.0.0 0.0.0.255
+rule 10 permit source 172.16.2.0 0.0.0.255
+acl number 2001
+rule 5 permit source 172.16.1.0 0.0.0.255
+rule 10 permit source 172.16.3.0 0.0.0.255
+
+policy-based-route test permit node 10
+if-match acl 2000
+apply output-interface Serial1/0/0
+policy-based-route test permit node 20
+if-match acl 2001
+apply output-interface Serial1/0/1

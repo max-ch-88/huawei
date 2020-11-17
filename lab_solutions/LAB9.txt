@@ -1,0 +1,71 @@
+[AR1]
+  maximum load-balancing ibgp 2
+  load-balancing as-path-ignore
+undo   maximum load-balancing ibgp
+undo  load-balancing as-path-ignore
+
+[AR2]
+[AR3]
+[AR4]
+[AR5]
+ipv6
+ospf 1 router-id 10.0.5.5
+area 0
+q
+ospfv 1
+router-id 10.0.5.5
+q
+
+int lo0
+ip add 10.0.5.5 32
+ipv en
+ipv add 2000::5 128
+ospf en 1 area 0
+ospfv 1 area 0
+int gi0/0/0
+ip add 10.0.35.5 24
+ipv en
+ipv add 2000::3505 120
+ospf en 1 area 0
+ospfv 1 area 0
+int gi0/0/1
+ip add 10.0.58.5 24
+ipv en
+ipv add 2000::5805 120
+ospf en 1 area 0
+ospfv 1 area 0
+
+bgp 100
+router-id 10.0.5.5
+peer 10.0.3.3 as 100
+peer 10.0.3.3 conn lo0
+peer 2000::3 as 100
+peer 2000::3 conn lo0
+peer 10.0.58.8 as 400
+peer 10.0.58.8 password cipher huawei
+peer 2000::5808 as 400
+peer 2000::5808 password cipher huawei
+ipv4-f uni
+peer 10.0.3.3 en
+peer 10.0.3.3 advertise-community
+peer 10.0.58.8 en
+peer 10.0.58.8 route-po add_community import
+peer 10.0.58.8 route-po filter export
+ipv6-f uni
+peer 2000::3 en
+peer 2000::5808 en
+
+ip comm 10 permit 100:400
+route-pol add_community per node 10
+app comm 100:200
+route-pol filter de node 10
+if-ma comm 10
+route-po filter per node 20
+
+bgp 100
+ipv6-f uni
+agg 2000:0:0:70:: 62 as-set detail-suppr
+
+[AR6]
+[AR7]
+[AR8]

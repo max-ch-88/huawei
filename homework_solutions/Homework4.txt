@@ -1,0 +1,415 @@
+[ISP]
+
+[CE3]
+ospf 1 router-id 8.8.8.8 
+ area 0.0.0.0
+ net 10.3.1.0 0.0.0.255
+ net 8.8.8.8 0.0.0.0
+
+[CE4]
+ip vpn-instance MCE
+ ipv4-family
+
+interface GigabitEthernet0/0/0
+ ip binding vpn-instance MCE
+ ip address 10.4.1.1 255.255.255.0 
+
+interface LoopBack0
+ ip binding vpn-instance MCE
+ ip address 9.9.9.9 255.255.255.255 
+
+ospf 1 router-id 9.9.9.9 vpn-instance MCE
+ dn-bit-check disable ase
+ area 0.0.0.0 
+ net 10.4.1.0 0.0.0.255
+ net 9.9.9.9 0.0.0.0
+
+[CE1]
+router id 1.1.1.1
+bfd
+
+bfd ISP bind peer-ip 195.1.1.1 interface GigabitEthernet1/0/0 source-ip 195.1.1.2 one-arm-echo
+ discriminator local 1
+ min-echo-rx-interval 40
+
+bgp 65430
+ peer 10.1.1.2 as-number 100 
+ peer 10.1.2.2 as-number 100 
+
+ ipv4-family unicast
+  undo synchronization
+  preference route-policy S2N_eBGP
+  import-route ospf 1 route-policy H2N
+  peer 10.1.1.2 enable
+  peer 10.1.1.2 route-policy S2N import
+  peer 10.1.1.2 advertise-community
+  peer 10.1.2.2 enable
+  peer 10.1.2.2 advertise-community
+  peer 10.1.2.2 default-route-advertise
+
+ospf 1 
+ default-route-advertise type 1
+ import-route bgp route-policy S2N
+ area 0.0.0.0
+ net 1.1.1.1 0.0.0.0
+ net 192.168.12.0 0.0.0.255
+
+route-policy H2N deny node 10 
+ if-match tag 6543011
+
+route-policy H2N permit node 20 
+ apply community 65430:21 
+
+route-policy S2N permit node 10 
+ apply cost-type type-1 
+ apply community 65430:11 additive
+ apply tag 6543011
+
+route-policy S2N_eBGP permit node 10 
+ if-match community-filter S2N 
+ apply preference 20 
+
+ip community-filter basic S2N permit 65430:11
+ip community-filter basic H2N permit 65430:21
+
+ip route-static 0.0.0.0 0.0.0.0 195.1.1.1 track bfd-session ISP
+
+[CE2]
+router id 2.2.2.2
+
+bgp 65430
+ peer 10.2.1.2 as-number 100 
+ peer 10.2.2.2 as-number 100 
+
+ ipv4-family unicast
+  undo synchronization
+  preference route-policy S2Net_eBGP
+  import-route ospf 1 route-policy H2N
+  peer 10.2.1.2 enable
+  peer 10.2.1.2 route-policy S2N import
+  peer 10.2.1.2 advertise-community
+  peer 10.2.2.2 enable
+  peer 10.2.2.2 advertise-community
+
+ospf 1 
+ import-route bgp route-policy S2N
+ area 0.0.0.0 
+ net 2.2.2.2 0.0.0.0
+ net 192.168.12.0 0.0.0.255
+
+route-policy H2N deny node 10 
+ if-match tag 6543011
+
+route-policy H2N permit node 20 
+ apply community 65430:21 
+
+route-policy S2N permit node 10 
+ apply cost-type type-1 
+ apply community 65430:11 additive 
+ apply tag 6543011 
+
+route-policy S2Net_eBGP permit node 10 
+ if-match community-filter S2N 
+ apply preference 20 
+
+ip community-filter basic S2N permit 65430:11
+ip community-filter basic H2N permit 65430:21
+
+ip route-static 0.0.0.0 0.0.0.0 195.2.2.1 preference 200 track nqa CE2 ISP
+
+nqa test-instance CE2 ISP
+ test-type icmp
+ destination-address ipv4 195.2.2.1
+ frequency 5
+ probe-count 1
+ start now
+
+[PE1]
+ip vpn-instance H-VPN-in
+ ipv4-family
+  route-distinguisher 3.3.3.3:1
+  vpn-target 100:1 100:2 import-extcommunity
+
+ip vpn-instance H-VPN-out
+ ipv4-family
+  route-distinguisher 3.3.3.3:2
+  vpn-target 100:2 export-extcommunity
+
+mpls lsr-id 3.3.3.3
+mpls
+
+mpls ldp
+
+isis 1
+ is-level level-2
+ cost-style wide
+ network-entity 49.0001.0003.0003.0003.00
+
+int gi0/0/0
+ isis enable 1
+ isis circuit-type p2p
+ isis circuit-level level-2
+ mpls
+ mpls ldp
+int gi0/0/1
+ ip binding vpn-instance H-VPN-in
+ ip address 10.1.1.2 255.255.255.0 
+int gi0/0/2
+ ip binding vpn-instance H-VPN-out
+ ip address 10.1.2.2 255.255.255.0 
+int loo0
+ isis enable 1
+ isis circuit-level level-2
+
+bgp 100
+ peer 5.5.5.5 as-number 100 
+ peer 5.5.5.5 connect-interface loo0
+
+ ipv4-f vpnv4
+  policy vpn-target
+  peer 5.5.5.5 enable
+  peer 5.5.5.5 advertise-community
+
+ ipv4-f vpn-instance H-VPN-in 
+  peer 10.1.1.1 as-number 65430 
+  peer 10.1.1.1 advertise-community
+  peer 10.1.1.1 allow-as-loop
+
+ ipv4-f vpn-instance H-VPN-out 
+  peer 10.1.2.1 as-number 65430 
+  peer 10.1.2.1 advertise-community
+  peer 10.1.2.1 allow-as-loop
+
+[PE2]
+router id 4.4.4.4 
+
+ip vpn-instance H-VPN-in
+ ipv4-family
+  route-distinguisher 4.4.4.4:1
+  vpn-target 100:1 import-extcommunity
+
+ip vpn-instance H-VPN-out
+ ipv4-family
+  route-distinguisher 4.4.4.4:2
+  vpn-target 100:2 export-extcommunity
+
+mpls lsr-id 4.4.4.4
+mpls
+
+mpls ldp
+
+isis 1
+ is-level level-2
+ cost-style wide
+ network-entity 49.0001.0004.0004.0004.00
+
+int gi0/0/0
+ isis enable 1
+ isis circuit-type p2p
+ isis circuit-level level-2
+ mpls
+ mpls ldp
+int gi0/0/1
+ ip binding vpn-instance H-VPN-in
+ ip address 10.2.1.2 255.255.255.0
+int gi0/0/2
+ ip binding vpn-instance H-VPN-out
+ ip address 10.2.2.2 255.255.255.0 
+int loo0
+ isis enable 1
+ isis circuit-level level-2
+
+bgp 100
+ peer 5.5.5.5 as-number 100 
+ peer 5.5.5.5 connect-interface loo0
+ 
+ ipv4-family vpnv4
+  policy vpn-target
+  peer 5.5.5.5 enable
+
+ ipv4-family vpn-instance H-VPN-in 
+  peer 10.2.1.1 as-number 65430 
+  peer 10.2.1.1 advertise-community
+  peer 10.2.1.1 allow-as-loop
+
+ ipv4-family vpn-instance H-VPN-out 
+  peer 10.2.2.1 as-number 65430 
+  peer 10.2.2.1 advertise-community
+  peer 10.2.2.1 allow-as-loop
+
+
+[RR]
+router id 5.5.5.5
+mpls lsr-id 5.5.5.5
+mpls
+
+mpls ldp
+
+isis 1
+ is-level level-2
+ cost-style wide
+ network-entity 49.0001.0005.0005.0005.00
+
+interface GigabitEthernet1/0/0
+ ip address 192.168.35.1 255.255.255.0 
+ isis enable 1
+ isis circuit-type p2p
+ isis circuit-level level-2
+ mpls
+ mpls ldp
+interface GigabitEthernet2/0/0
+ ip address 192.168.45.1 255.255.255.0 
+ isis enable 1
+ isis circuit-type p2p
+ isis circuit-level level-2
+ mpls
+ mpls ldp
+interface GigabitEthernet3/0/0
+ ip address 192.168.65.1 255.255.255.0 
+ isis enable 1
+ isis circuit-type p2p
+ isis circuit-level level-2
+ mpls
+ mpls ldp
+interface GigabitEthernet4/0/0
+ ip address 192.168.75.1 255.255.255.0 
+ isis enable 1
+ isis circuit-type p2p
+ isis circuit-level level-2
+ mpls
+ mpls ldp
+interface LoopBack0
+ ip address 5.5.5.5 255.255.255.255 
+ isis enable 1
+ isis circuit-level level-2
+
+bgp 100
+ group iBGP internal
+ peer iBGP connect-interface LoopBack0
+ peer 3.3.3.3 as-number 100 
+ peer 3.3.3.3 group iBGP 
+ peer 4.4.4.4 as-number 100 
+ peer 4.4.4.4 group iBGP 
+ peer 6.6.6.6 as-number 100 
+ peer 6.6.6.6 group iBGP 
+ peer 7.7.7.7 as-number 100 
+ peer 7.7.7.7 group iBGP 
+
+ ipv4-family vpnv4
+  undo policy vpn-target
+  peer iBGP enable
+  peer iBGP reflect-client
+  peer iBGP next-hop-invariable 
+  peer iBGP advertise-community
+  peer 3.3.3.3 enable
+  peer 3.3.3.3 group iBGP 
+  peer 4.4.4.4 enable
+  peer 4.4.4.4 group iBGP 
+  peer 6.6.6.6 enable
+  peer 6.6.6.6 group iBGP 
+  peer 7.7.7.7 enable
+  peer 7.7.7.7 group iBGP 
+
+[PE3]
+router id 6.6.6.6 
+ip vpn-instance S-VPN
+ ipv4-family
+  route-distinguisher 6.6.6.6:11
+  vpn-target 100:1 export-extcommunity
+  vpn-target 100:2 import-extcommunity
+
+mpls lsr-id 6.6.6.6
+mpls
+
+mpls ldp
+
+isis 1
+ is-level level-2
+ cost-style wide
+ network-entity 49.0001.0006.0006.0006.00
+
+int Gi0/0/0
+ isis enable 1
+ isis circuit-type p2p
+ isis circuit-level level-2
+ mpls
+ mpls ldp
+
+int Gi0/0/1
+ ip binding vpn-instance S-VPN
+ ip address 10.3.1.2 255.255.255.0 
+
+interface LoopBack0
+ isis enable 1
+ isis circuit-level level-2
+
+bgp 100
+ peer 5.5.5.5 as-number 100 
+ peer 5.5.5.5 conn loo0
+ 
+ ipv4-family vpnv4
+  policy vpn-target
+  peer 5.5.5.5 enable
+  peer 5.5.5.5 advertise-community
+
+ ipv4-family vpn-instance S-VPN 
+  import-route ospf 1
+
+ospf 1 router-id 6.6.6.6 vpn-instance S-VPN
+ default-route-advertise type 1
+ import-route bgp type 1 tag 6543021
+ area 0.0.0.0 
+ net 10.3.1.0 0.0.0.255
+
+
+
+[PE4]
+router id 7.7.7.7 
+ip vpn-instance S-VPN
+ ipv4-family
+  route-distinguisher 7.7.7.7:1
+  vpn-target 100:1 export-extcommunity
+  vpn-target 100:2 import-extcommunity
+
+mpls lsr-id 7.7.7.7
+mpls
+
+mpls ldp
+
+isis 1
+ is-level level-2
+ cost-style wide
+ network-entity 49.0001.0007.0007.0007.00
+
+int gi0/0/0
+ isis enable 1
+ isis circuit-type p2p
+ isis circuit-level level-2
+ mpls
+ mpls ldp
+
+int gi0/0/1
+ ip binding vpn-instance S-VPN
+ ip address 10.4.1.2 255.255.255.0 
+
+int loo0
+ isis enable 1
+ isis circuit-level level-2
+
+bgp 100
+ peer 5.5.5.5 as-number 100 
+ peer 5.5.5.5 conn loo0
+
+ ipv4-family vpnv4
+  policy vpn-target
+  peer 5.5.5.5 enable
+  peer 5.5.5.5 advertise-community
+
+ ipv4-family vpn-instance S-VPN 
+  import-route ospf 1
+
+ospf 1 router-id 7.7.7.7 vpn-instance S-VPN
+ default-route-advertise type 1
+ import-route bgp type 1 tag 6543021
+ area 0.0.0.0 
+ net 10.4.1.0 0.0.0.255

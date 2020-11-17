@@ -1,0 +1,23 @@
+Configuration tasks:
+
+1. Configure IS-IS for IPv4 and IPv6 in AS 2 on routers R1-R6 for interfaces loopback0 and 
+for gigabitethernet interfaces (exclude ge0/0/1 by R1 and R2).
+
+2.Configure in AS 2 on routers R1, R2, R4, R5, R6 BGP neighbor relathionship with R3 using loopback0 ip address. 
+R3 must be RR.
+When routers R1, R2, R4, R5, R6 announcing an update to the router R3 should change next-hop address to own loopback0 address.
+On R5 and R6 advertise network gi0/0/2 interface (192.168.55.0/24 and 192.168.66.0/24) to BGP.
+
+3. Between R7 located in AS1 and R1 and also between R7 and R2 configure neighbor eBGP relathionship with  using loopback0 ip address.
+
+4.Modify the BGP  attribute on routers in AS2, so that when PC1 and PC2 access the non-directly connected network segments 10.10.X.0/24 (networks) on R7, 
+R5 and R6 preferentially select R1 as the next top if X is an odd number, or preferentially select R2 as the next hop if X is an even number. 
+Consistency of the round-trip paths does not need to be considered.
+Consider what are the possible configuration options to solve this problem.
+
+5.Configure R1 and R7 to establish an EBGP4+ (IPv6 address-family) peer relationship through the direct link, configure R1 and R3 to establish an IBGP4+ (IPv6 address-family)  peer relationship through the loopback 0. 
+IPv6 addresses preconfigured on R7, R1, R3.
+(See IPv6 address on all routers used command display ipv6 int brief )
+
+6. On R3, import IS-IS IPv6 routes to BGP4+ and on R1 advertise only the route with the prefix of 2000:BD8:0:55:/64  and 2000:BD8:0:66:/64 to R7 with filter-policy command. 
+(See IPv6 address on all routers used command display ipv6 int brief )

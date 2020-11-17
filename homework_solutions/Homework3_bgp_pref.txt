@@ -1,0 +1,167 @@
+[R1]
+acl 2002
+ rule 5 permit source 172.16.0.0 0.0.255.254
+acl 2001
+ rule 5 permit source 172.16.0.1 0.0.255.254
+
+isis 1
+ import-route bgp route-policy B_to_I
+
+bgp 1
+  preference route-policy B_Pref
+  import-route isis 1 route-policy I_to_B
+  imp dir
+  peer 192.168.1.2 advertise-community
+
+route-policy I_to_B deny node 10 
+ if-match tag 20
+
+route-policy I_to_B permit node 20
+ if-match acl 2001
+ apply preference 14
+ apply community 1:1 additive
+
+route-policy I_to_B permit node 30
+ if-match acl 2002
+ apply preference 14
+ apply community 2:2 additive
+
+route-policy B_to_I permit node 10
+ apply preference 14
+ apply tag 10
+
+route-policy B_Pref permit node 10
+ if-match community-filter 11
+ apply preference 14
+
+route-policy B_Pref permit node 20 
+
+ip community-filter 11 permit 1:1
+ip community-filter 22 permit 2:2
+
+[R2]
+acl 2002
+ rule 5 permit source 172.16.0.0 0.0.255.254
+acl 2001
+ rule 5 permit source 172.16.0.1 0.0.255.254
+
+isis 1
+ import-route bgp route-policy B_to_I
+
+bgp 1
+  preference route-policy B_Pref
+  import-route isis 1 route-policy I_to_B
+  imp dir
+  peer 192.168.2.2 advertise-community
+
+route-policy I_to_B deny node 10 
+ if-match tag 10
+
+route-policy I_to_B permit node 20
+ if-match acl 2001
+ apply preference 14
+ apply community 1:1 additive
+
+route-policy I_to_B permit node 30
+ if-match acl 2002
+ apply preference 14
+ apply community 2:2 additive
+
+route-policy B_to_I permit node 10
+ apply preference 14
+ apply tag 20
+
+route-policy B_Pref permit node 10
+ if-match community-filter 22
+ apply preference 14
+
+route-policy B_Pref permit node 20 
+
+ip community-filter 11 permit 1:1
+ip community-filter 22 permit 2:2
+
+
+
+[R3]
+acl 2002
+ rule 5 permit source 172.16.0.0 0.0.255.254
+acl 2001
+ rule 5 permit source 172.16.0.1 0.0.255.254
+
+isis 1
+ import-route bgp route-policy B_to_I
+
+bgp 2
+  preference route-policy B_Pref
+  import-route isis 1 route-policy I_to_B
+  imp dir
+  peer 192.168.1.1 advertise-community
+
+route-policy I_to_B deny node 10 
+ if-match tag 20
+
+route-policy I_to_B permit node 20 
+ if-match acl 2001
+ apply preference 14 
+ apply community 1:1 additive 
+
+route-policy I_to_B permit node 30 
+ if-match acl 2002
+ apply preference 14
+ apply community 2:2 additive 
+
+route-policy B_to_I permit node 10 
+ apply preference 14
+ apply tag 10
+
+route-policy B_Pref permit node 10
+ if-match community-filter 11
+ apply preference 14
+
+route-policy B_Pref permit node 20 
+
+ip community-filter 11 permit 1:1
+ip community-filter 22 permit 2:2
+
+
+[R4]
+acl 2002
+ rule 5 permit source 172.16.0.0 0.0.255.254
+acl 2001
+ rule 5 permit source 172.16.0.1 0.0.255.254
+
+isis 1
+ import-route bgp route-policy B_to_I
+
+bgp 2
+  preference route-policy B_Pref
+  import-route isis 1 route-policy I_to_B
+  imp dir
+  peer 192.168.2.1 advertise-community
+
+route-policy I_to_B deny node 10 
+ if-match tag 10
+
+route-policy I_to_B permit node 20
+ if-match acl 2001
+ apply preference 14
+ apply community 1:1 additive
+
+route-policy I_to_B permit node 30
+ if-match acl 2002
+ apply preference 14
+ apply community 2:2 additive
+
+route-policy B_to_I permit node 10
+ apply preference 14
+ apply tag 20
+
+route-policy B_Pref permit node 10
+ if-match community-filter 22
+ apply preference 14
+
+route-policy B_Pref permit node 20 
+
+ip community-filter 11 permit 1:1
+ip community-filter 22 permit 2:2
+

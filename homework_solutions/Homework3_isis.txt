@@ -1,0 +1,64 @@
+[R3]
+ip ip-prefix permit_172_16 index 10 permit 172.16.0.0 16 gr 16 le 32
+
+route-policy isis_ospf deny node 10 
+if-m tag 21
+route-policy isis_ospf permit node 20 
+if-match ip-prefix permit_172_16 
+appl tag 12
+
+route-policy ospf_isis deny node 10 
+if-m tag 12
+route-policy ospf_isis permit node 20
+if-match ip-prefix permit_172_16 
+appl tag 21
+
+route-policy ospf_isis_pref permit node 10
+if-match ip-prefix permit_172_16 
+appl preference 15
+
+ospf 1
+default cost inherit-metric
+imp isis type 1 route-p isis_ospf
+pref ase route-p ospf_isis_pref 150
+
+isis 1
+imp ospf inherit-cost route-policy ospf_isis
+
+
+[R4]
+ip ip-prefix permit_172_16 index 10 permit 172.16.0.0 16 gr 16 le 32
+
+route-policy isis_ospf deny node 10 
+if-m tag 21
+route-policy isis_ospf permit node 20 
+if-match ip-prefix permit_172_16 
+appl tag 12
+
+route-policy ospf_isis deny node 10 
+if-m tag 12
+route-policy ospf_isis permit node 20
+if-match ip-prefix permit_172_16 
+appl tag 21
+
+route-policy ospf_isis_pref permit node 10
+if-match ip-prefix permit_172_16 
+appl preference 15
+
+ospf 1
+default cost inherit-metric
+imp isis type 1 route-p isis_ospf
+pref ase route-p ospf_isis_pref 150
+
+isis 1
+imp ospf inherit-cost route-policy ospf_isis
+
+
+[R6]
+ip ip-prefix permit_lo index 10 permit 172.16.0.6 32
+
+route-policy permit_lo permit node 10 
+if-match ip-prefix permit_lo 
+
+ospf 1
+import-route direct cost 0 route-policy permit_lo

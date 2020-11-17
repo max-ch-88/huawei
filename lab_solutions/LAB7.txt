@@ -1,0 +1,88 @@
+[RTA]
+isis 1
+ipv6 en to ipv6
+is-lev level-2
+ipv6 en
+netw 02.0000.0000.0001.00
+int gi0/0/1
+isis en
+isis ipv6 en
+isis circuit-l level-2
+int gi0/0/2
+isis en
+isis ipv6 en
+isis circuit-l level-2
+int loo0
+isis en
+isis ipv6 en
+isis circuit-l level-2
+ip route-s 100.1.1.1 32 null0
+ip route-s 200.1.1.1 32 null0
+ip ip-p 200 ind 10 p 200.1.1.1 32
+route-policy 200 pe no 10
+if ip-p 200
+isis 1
+imp sta rou 200
+
+[RTB]
+isis 1
+ipv6 en to ipv6
+is-lev level-2
+netw 01.0000.0000.0002.00
+import isis level-2 into level-1
+int gi0/0/0
+isis en
+isis ipv6 en
+isis circuit-l level-2
+int gi0/0/1
+isis en
+isis ipv6 en
+isis circuit-l level-1
+int gi0/0/2
+isis en
+isis ipv6 en
+int loo0
+isis en
+isis ipv6 en
+isis circuit-l level-2
+
+[RTC]
+isis 1
+ipv6 en to ipv6
+is-lev level-2
+netw 01.0000.0000.0003.00
+import isis level-2 into level-1
+int gi0/0/2
+isis en
+isis ipv6 en
+isis circuit-l level-2
+int gi0/0/1
+isis en
+isis ipv6 en
+isis circuit-l level-1
+int gi0/0/0
+isis en
+isis ipv6 en
+int loo0
+isis en
+isis ipv6 en
+isis circuit-l level-2
+
+[RTD]
+isis 1
+ipv6 en to ipv6
+is-lev level-2
+netw 01.0000.0000.0004.00
+int gi0/0/1
+isis en
+isis ipv6 en
+isis circuit-l level-1
+int gi0/0/2
+isis en
+isis ipv6 en
+isis circuit-l level-1
+int loo0
+isis en
+isis ipv6 en
+isis circuit-l level-1
+

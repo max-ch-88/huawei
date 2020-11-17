@@ -1,0 +1,218 @@
+[sw1]
+interface Eth-Trunk0
+mode lacp-static
+load-balance src-dst-mac
+tru gi0/0/12
+tru gi0/0/13
+
+int gi0/0/1
+port link-type trunk
+port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+int gi0/0/2
+port link-type trunk
+port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+int gi0/0/5
+port link-type trunk
+port trunk all vlan 11 to 12
+
+vlan batch 11 to 12
+stp instance 11 root primary
+stp instance 12 root secondary
+stp en
+stp region-configuration
+region-name LAB
+revision-level 5
+instance 11 vlan 11
+instance 12 vlan 12
+active region-configuration
+
+port-group group-member gi0/0/3 to gi0/0/4 gi0/0/6 to gi0/0/11 gi0/0/14 to gi0/0/24
+stp edged-port en
+
+[sw2]
+interface Eth-Trunk0
+mode lacp-static
+load-balance src-dst-mac
+tru gi0/0/12
+tru gi0/0/13
+
+int gi0/0/1
+port link-type trunk
+port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+int gi0/0/2
+port link-type trunk
+port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+int gi0/0/5
+port link-type trunk
+port trunk all vlan 11 to 12
+
+vlan batch 11 to 12
+stp instance 11 root secondary
+stp instance 12 root primary
+stp en
+stp region-configuration
+region-name LAB
+revision-level 5
+instance 11 vlan 11
+instance 12 vlan 12
+active region-configuration
+
+port-group group-member gi0/0/3 to gi0/0/4 gi0/0/6 to gi0/0/11 gi0/0/14 to gi0/0/24
+stp edged-port en
+q
+
+[sw3]
+int gi0/0/1
+port link-type trunk
+port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+int gi0/0/2
+port link-type trunk
+port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+int gi0/0/3
+port link-type acc
+port def vl 11
+
+vlan batch 11 to 12
+stp en
+stp region-configuration
+region-name LAB
+revision-level 5
+instance 11 vlan 11
+instance 12 vlan 12
+active region-configuration
+
+port-group group-member gi0/0/3 to gi0/0/24
+stp edged-port en
+q
+
+[sw4]
+int gi0/0/1
+port link-type trunk
+port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+int gi0/0/2
+port link-type trunk
+port trunk allow-pass vlan 2 to 99 101 to 199 201 to 4094
+
+int gi0/0/3
+port link-type acc
+port def vl 12
+
+vlan batch 11 to 12
+stp en
+stp region-configuration
+region-name LAB
+revision-level 5
+instance 11 vlan 11
+instance 12 vlan 12
+active region-configuration
+
+port-group group-member gi0/0/3 to gi0/0/24
+stp edged-port en
+q
+
+[R1]
+vlan batch 11 to 12
+int gi0/0/1.11
+dot1q termination vid 11
+ip address 192.168.11.101 24
+arp bro en
+vrrp vrid 11 virt 192.168.11.1
+vrrp vrid 11 priority 120
+vrrp vrid 11 preempt-mode timer delay 180
+
+int gi0/0/1.12
+dot1q termination vid 12
+ip address 192.168.12.101 24
+arp bro en
+vrrp vrid 12 virt 192.168.12.1
+vrrp vrid 12 preempt-mode timer delay 180
+q
+
+bfd
+bfd hello bind peer-ip 192.168.11.102 int gi0/0/1.11 source-ip 192.168.11.101 auto
+int gi0/0/1.11
+vrrp vrid 11 track bfd-session session-name hello reduced 30
+
+ip route-static 200.1.1.0 255.255.255.0 NULL0
+
+ospf 1 router-id 10.10.10.10 
+area 0
+silent-interface lo0
+import-route static
+
+int gi0/0/0
+ospf en 1 area 0
+int gi0/0/2
+ospf en 1 area 0
+int lo0
+ospf en 1 area 0
+
+nat addr 1 200.1.1.101 200.1.1.199
+nat sta pro tcp glo 200.1.1.100 ftp ins 192.168.11.100
+nat sta pro tcp glo 200.1.1.100 www ins 192.168.11.100
+acl 2000
+rule 5 permit source 192.168.11.0 0.0.0.255
+rule 10 permit source 192.168.12.0 0.0.0.255
+int gi0/0/2
+nat outbound 2000 address-group 1
+nat st en
+
+[R2]
+vlan batch 11 to 12
+int gi0/0/1.11
+dot1q termination vid 11
+ip address 192.168.11.102 24
+arp bro en
+vrrp vrid 11 virt 192.168.11.1
+vrrp vrid 11 preempt-mode timer delay 180
+
+int gi0/0/1.12
+dot1q termination vid 12
+ip address 192.168.12.102 24
+arp bro en
+vrrp vrid 12 virt 192.168.12.1
+vrrp vrid 12 priority 120
+vrrp vrid 12 preempt-mode timer delay 180
+
+ip route-static 200.2.2.0 255.255.255.0 NULL0
+ospf 1 router-id 20.20.20.20 
+area 0
+silent-interface lo0
+import-route static
+int gi0/0/0
+ospf en 1 area 0
+int gi0/0/2
+ospf en 1 area 0
+int lo0
+ospf en 1 area 0
+
+nat addr 1 200.2.2.101 200.2.2.199
+nat sta pro tcp glo 200.2.2.100 ftp ins 192.168.12.100
+nat sta pro tcp glo 200.2.2.100 www ins 192.168.12.100
+acl 2000
+rule 5 permit source 192.168.11.0 0.0.0.255
+rule 10 permit source 192.168.12.0 0.0.0.255
+int gi0/0/2
+nat outbound 2000 address-group 1
+nat st en
+
+[R3]
+ip route-static 200.1.1.0 24 192.168.113.1
+ip route-static 200.2.2.0 24 192.168.223.2
+ospf 1 router-id 30.30.30.30 
+area 0
+silent-interface lo0
+int gi0/0/1
+ospf en 1 area 0
+int gi0/0/2
+ospf en 1 area 0
+int lo0
+ospf en 1 area 0
+
