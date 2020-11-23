@@ -1,0 +1,709 @@
+[S1, S2]
+int eth-tr0
+ load-b src-dst-mac
+int gi0/0/23
+ eth-tr0
+int gi0/0/24
+ eth-tr0
+
+[S1, S2]
+int eth-tr0
+ port link-t trunk
+ port trunk allow vlan all
+ undo port trunk allow vlan 1
+int gi0/0/1
+ port link-t trunk
+ port trunk allow vlan all
+ undo port trunk allow vlan 1
+int gi0/0/12
+ port link-t trunk
+ port trunk allow vlan all
+ undo port trunk allow vlan 1
+int gi0/0/2
+ port link-t trunk
+ port trunk allow vlan all
+
+[S3, S4]
+int gi0/0/1
+ port link-t trunk
+ port trunk allow vlan all
+ undo port trunk allow vlan 1
+int gi0/0/2
+ port link-t trunk
+ port trunk allow vlan all
+ undo port trunk allow vlan 1
+
+[CE1]
+int gi0/0/2.10
+ vrrp vrid 1 virt 10.3.1.254
+ vrrp vrid 1 prio 120
+ vrrp vrid 1 preem timer del 60
+int gi0/0/2.20
+ vrrp vrid 2 virt 10.3.2.254
+ 
+[CE2]
+int gi0/0/2.10
+ vrrp vrid 1 virt 10.3.1.254
+int gi0/0/2.20
+ vrrp vrid 2 virt 10.3.2.254
+ vrrp vrid 2 prio 120
+ vrrp vrid 2 preem timer del 60
+
+[S3]
+vlan batch 10 20
+int eth0/0/1
+ port link-t acc
+ port def vlan 10
+ 
+[S4]
+vlan batch 10 20
+int eth0/0/1
+ port link-t acc
+ port def vlan 20
+ 
+[S1-S4]
+vlan batch 10 20
+stp region-conf
+ region-n HUAWEI
+ rev 12
+ inst 10 vlan 10
+ inst 20 vlan 20
+ active region-conf
+stp edge def
+
+[S1]
+stp inst 10 root pri
+stp inst 20 root sec
+
+[S2]
+stp inst 10 root sec
+stp inst 20 root pri
+
+[S1-S2]
+int eth-tr0
+ stp edge dis
+int gi0/0/1
+ stp edge dis 
+int gi0/0/12
+ stp edge dis 
+ 
+[S3-S4]
+int gi0/0/1
+ stp edge dis 
+int gi0/0/2
+ stp edge dis 
+
+[PE3,CE3]
+int mp-gro0/0/0
+ ip addr 10.2.33.2,1 255.255.255.252
+int pos4/0/0
+ link-pro ppp
+ ppp mp mp-gro0/0/0
+int pos6/0/0
+ link-pro ppp
+ ppp mp mp-gro0/0/0
+ 
+[CE1,CE2]
+ospf 1
+ silent-int gi0/0/2.10
+ silent-int gi0/0/2.20
+ area 0
+  net 10.3.1.0 0.0.0.255
+  net 10.3.2.0 0.0.0.255
+
+[PE3,PE4]
+int gi0/0/0
+ ospf net p2p
+
+[PE4]
+acl 2010
+ rule 10 perm sou 172.16.1.2 0
+route-p L2O perm node 10
+ if-m acl 2010
+ospf 1
+ imp direct type 1 route-pol L2O
+ 
+[RR2,P2]
+int gi0/0/0
+ isis circuit-t p2p
+
+[P1]
+isis 1
+ timer lsp-gen 1 50 50
+ flash-flood
+ timer spf 1 100 100
+
+[PE1]
+ip vpn-inst VPN1-in
+ route-d 100:11
+ vpn-t 100:1 200:1 import-ext
+ 
+ip vpn-inst VPN1-out
+ route-d 100:12
+ vpn-t 200:1 export-ext
+
+[PE2]
+ip vpn-inst VPN1-in
+ route-d 100:21
+ vpn-t 100:1 import-ext
+ 
+ip vpn-inst VPN1-out
+ route-d 100:22
+ vpn-t 200:1 export-ext
+
+[PE3]
+ip vpn-inst VPN1
+ route-d 100:13
+ vpn-t 100:1 export-ext
+ vpn-t 200:1 import-ext
+ 
+[PE4]
+ip vpn-inst VPN1
+ route-d 100:2
+ vpn-t 100:1 export-ext
+ vpn-t 200:1 import-ext
+
+[CE1]
+bgp 65000
+ pee 10.2.11.2 as 100
+ pee 10.2.11.2 advertise-com 
+ pee 10.2.11.6 as 100
+ pee 10.2.11.6 advertise-com 
+ imp ospf 1
+
+[PE1]
+int gi0/0/1.1
+ ip bind vpn-inst VPN1-in
+ dot1q term vid 1
+ ip addr 10.2.11.2 255.255.255.252
+ arp broad en
+int gi0/0/1.2
+ ip bind vpn-inst VPN1-out
+ dot1q term vid 2
+ ip addr 10.2.11.6 255.255.255.252
+ arp broad en
+
+bgp 100
+ ipv4-f vpn-inst VPN1-in
+  pee 10.2.11.1 as 65000
+  pee 10.2.11.1 advertise-com 
+ ipv4-f vpn-inst VPN1-out
+  pee 10.2.11.5 as 65000
+  pee 10.2.11.5 advertise-com 
+  pee 10.2.11.5 allow-as-loop
+
+[CE2]
+bgp 65000
+ pee 10.2.22.2 as 100
+ pee 10.2.22.2 advertise-com 
+ pee 10.2.22.6 as 100
+ pee 10.2.22.6 advertise-com 
+ imp ospf 1
+
+[PE2]
+int gi0/0/1.1
+ ip bind vpn-inst VPN1-in
+ dot1q term vid 1
+ ip addr 10.2.22.2 255.255.255.252
+ arp broad en
+int gi0/0/1.2
+ ip bind vpn-inst VPN1-out
+ dot1q term vid 2
+ ip addr 10.2.22.6 255.255.255.252
+ arp broad en
+
+bgp 100
+ ipv4-f vpn-inst VPN1-in
+  pee 10.2.22.1 as 65000
+  pee 10.2.22.1 advertise-com 
+ ipv4-f vpn-inst VPN1-out
+  pee 10.2.22.5 as 65000
+  pee 10.2.22.5 advertise-com 
+  pee 10.2.22.5 allow-as-loop
+
+[CE3]
+ospf 1
+ area 0.0.0.1
+  net 10.2.33.0 0.0.0.3
+  net 10.3.3.3 0.0.0.0
+  net 172.17.1.3 0.0.0.0
+
+[PE3]
+int mp-gro0/0/0
+ ip bind vpn-inst VPN1
+ ip addr 10.2.33.2 255.255.255.252
+ospf 2 vpn-inst VPN1
+ imp bgp
+ area 0.0.0.1
+  net 10.2.33.0 0.0.0.3
+
+[CE4]
+ip vpn-inst VPN1
+ ipv4-f
+  route-d 1:1
+ospf 2 vpn-instVPN1
+ vpn-instance-capability simple
+ area 0.0.0.0
+int gi0/0/1.1
+ ip bind vpn-inst VPN1
+ ip addr 10.2.41.1 255.255.255.252
+ ospf en 2 area 0
+int loo0
+ ip bind vpn-inst VPN1
+ ip addr 172.17.1.4 255.255.255.255
+ ospf en 2 area 0
+int loo1
+ ip bind vpn-inst VPN1
+ ip addr 10.3.3.4 255.255.255.255
+ ospf en 2 area 0
+
+[PE4]
+int gi0/0/1.1
+ ip bind vpn-inst VPN1
+ dot1q term vid 1
+ ip addr 10.2.41.2 255.255.255.252
+ arp broad en
+ospf 2 vpn-inst VPN1
+ imp bgp
+ area 0.0.0.0
+  net 10.2.41.0 0.0.0.3
+
+[ASBR1]
+acl 2001
+ rule 10 perm sou 172.16.0.1 0.0.255.254
+acl 2002
+ rule 10 perm sou 172.16.0.0 0.0.255.254
+ip ip-pref LO ind 10 perm 172.16.0.0 16 gre 32
+
+route-p P1 perm node 10
+ if-m acl 2001
+ app comm 100:100
+ app mpls-label
+route-p P1 perm node 20
+ if-m acl 2002
+ app comm 200:200
+ app mpls-label
+route-p P1 perm node 30
+ app mpls-label
+
+route-p P2 perm node 10
+ if-m community-f 1
+ app pref 13
+route-p P2 perm node 20
+ 
+ip community-f 1 perm 100:100
+ip community-f 2 perm 200:200
+
+isis 1
+ imp bgp route-p B2I
+
+bgp 100
+ pref route-p P2
+ pee 10.1.57.2 as 200
+ pee 10.1.57.2 advertise-com
+ pee 10.1.57.2 route-p P1 exp
+ imp isis 1 med 0 route-p I2B
+
+route-p I2B deny node 10
+ if-m tag 600
+route-p I2B perm node 20
+ if-m ip-pref LO
+
+route-p B2I perm node 10
+ app tag 500
+ app cost 0
+ 
+[ASBR2] 
+acl 2001
+ rule 10 perm sou 172.16.0.1 0.0.255.254
+acl 2002
+ rule 10 perm sou 172.16.0.0 0.0.255.254
+ip ip-pref LO ind 10 perm 172.16.0.0 16 gre 32
+
+route-p P1 perm node 10
+ if-m acl 2001
+ app comm 100:100
+ app mpls-label
+route-p P1 perm node 20
+ if-m acl 2002
+ app comm 200:200
+ app mpls-label
+route-p P1 perm node 30
+ app mpls-label
+
+route-p P2 perm node 10
+ if-m community-f 2
+ app pref 13
+route-p P2 perm node 20
+ 
+ip community-f 1 perm 100:100
+ip community-f 2 perm 200:200
+
+isis 1
+ imp bgp route-p B2I
+
+bgp 100
+ pref route-p P2
+ pee 10.1.68.2 as 200
+ pee 10.1.68.2 advertise-com
+ pee 10.1.68.2 route-p P1 exp
+ imp isis 1 med 0 route-p I2B
+
+route-p I2B deny node 10
+ if-m tag 500
+route-p I2B perm node 20
+ if-m ip-pref LO
+
+route-p B2I perm node 10
+ app tag 600
+ app cost 0
+
+[ASBR3]
+acl 2001
+ rule 10 perm sou 172.16.0.1 0.0.255.254
+acl 2002
+ rule 10 perm sou 172.16.0.0 0.0.255.254
+ip ip-pref LO ind 10 perm 172.16.0.0 16 gre 32
+
+route-p P1 perm node 10
+ if-m acl 2001
+ app comm 100:100
+ app mpls-label
+route-p P1 perm node 20
+ if-m acl 2002
+ app comm 200:200
+ app mpls-label
+route-p P1 perm node 30
+ app mpls-label
+
+route-p P2 perm node 10
+ if-m community-f 1
+ app pref 13
+route-p P2 perm node 20
+ 
+ip community-f 1 perm 100:100
+ip community-f 2 perm 200:200
+
+isis 1
+ imp bgp route-p B2I
+
+bgp 200
+ pref route-p P2
+ pee 10.1.57.1 as 100
+ pee 10.1.57.1 advertise-com
+ pee 10.1.57.1 route-p P1 exp
+ imp isis 1 med 0 route-p I2B
+
+route-p I2B deny node 10
+ if-m tag 700
+route-p I2B perm node 20
+ if-m ip-pref LO
+
+route-p B2I perm node 10
+ app tag 800
+ app cost 0
+
+[ASBR4]
+acl 2001
+ rule 10 perm sou 172.16.0.1 0.0.255.254
+acl 2002
+ rule 10 perm sou 172.16.0.0 0.0.255.254
+ip ip-pref LO ind 10 perm 172.16.0.0 16 gre 32
+
+route-p P1 perm node 10
+ if-m acl 2001
+ app comm 100:100
+ app mpls-label
+route-p P1 perm node 20
+ if-m acl 2002
+ app comm 200:200
+ app mpls-label
+route-p P1 perm node 30
+ app mpls-label
+
+route-p P2 perm node 10
+ if-m community-f 2
+ app pref 13
+route-p P2 perm node 20
+ 
+ip community-f 1 perm 100:100
+ip community-f 2 perm 200:200
+
+isis 1
+ imp bgp route-p B2I
+
+bgp 200
+ pref route-p P2
+ pee 10.1.68.1 as 100
+ pee 10.1.68.1 advertise-com
+ pee 10.1.68.1 route-p P1 exp
+ imp isis 1 med 0 route-p I2B
+
+route-p I2B deny node 10
+ if-m tag 800
+route-p I2B perm node 20
+ if-m ip-pref LO
+
+route-p B2I perm node 10
+ app tag 700
+ app cost 0
+
+[PE4]
+route-p L2O perm node 10
+ app tag 900
+ 
+[RR2]
+ip ip-pref LO ind 10 perm 172.16.0.0 16 gre 32
+
+route-p O2I deny node 10
+ if-m tag 100
+route-p O2I perm node 20
+ if-m ip-pref LO
+ app tag 200
+
+route-p I2O deny node 10
+ if-m tag 300
+route-p I2O perm node 20
+ if-m ip-pref LO
+ app tag 400
+ 
+route-p ASE perm 10
+ if-m tag 900
+ app pref 12
+ 
+isis 1 
+ imp ospf 1 inherit-cost route-p O2I
+
+ospf 1
+ def cost inherit-metric
+ imp isis 1 type 1 route-p I2O
+ pref ase route-p ASE 150
+ 
+[P2]
+ip ip-pref LO ind 10 perm 172.16.0.0 16 gre 32
+
+route-p O2I deny node 10
+ if-m tag 400
+route-p O2I perm node 20
+ if-m ip-pref LO
+ app tag 300
+
+route-p I2O deny node 10
+ if-m tag 200
+route-p I2O perm node 20
+ if-m ip-pref LO
+ app tag 100
+
+route-p ASE perm 10
+ if-m tag 900
+ app pref 12
+ 
+isis 1 
+ imp ospf 1 inherit-cost route-p O2I
+
+ospf 1
+ def cost inherit-metric
+ imp isis 1 type 1 route-p I2O
+ pref ase route-p ASE 150
+
+[PE1]
+bgp 100
+ pee 172.16.1.3 as 100
+ pee 172.16.1.3 conn loo0
+ ipv4-f vpnv4
+  pee 172.16.1.3 en
+  pee 172.16.1.3 advertise-com
+
+[PE2]
+bgp 100
+ pee 172.16.1.3 as 100
+ pee 172.16.1.3 conn loo0
+ ipv4-f vpnv4
+  pee 172.16.1.3 en
+  pee 172.16.1.3 advertise-com
+
+[RR1]
+bgp 100
+ pee 172.16.1.1 as 100
+ pee 172.16.1.1 conn loo0
+ pee 172.16.1.1 reflect
+ pee 172.16.1.9 as 200
+ pee 172.16.1.9 conn loo0
+ pee 172.16.1.9 ebgp-max-hop 10
+ pee 172.16.1.20 as 100
+ pee 172.16.1.20 conn loo0
+ pee 172.16.1.20 reflect
+ ipv4-f vpnv4
+  un pol vpn-tar
+  pee 172.16.1.1 en
+  pee 172.16.1.1 reflect
+  pee 172.16.1.1 next-hop-invariable
+  pee 172.16.1.1 advertise-com
+  pee 172.16.1.20 en
+  pee 172.16.1.20 reflect
+  pee 172.16.1.20 next-hop-invariable
+  pee 172.16.1.20 advertise-com
+  pee 172.16.1.9 en
+  pee 172.16.1.9 next-hop-invariable
+  
+isis 1
+ imp isis level-2 into level-1
+
+[P1]
+isis 1
+ imp isis level-2 into level-1
+
+[ASBR1]
+mpls
+ lsp-trigger bgp-label-route
+
+int gi0/0/2
+ mpls
+
+bgp 100
+ peer 10.1.57.2 label-route-capability
+ 
+[ASBR2]
+mpls
+ lsp-trigger bgp-label-route
+
+int gi0/0/2
+ mpls
+
+bgp 100
+ peer 10.1.68.2 label-route-capability
+
+[ASBR3]
+mpls
+ lsp-trigger bgp-label-route
+
+int gi0/0/2
+ mpls
+
+bgp 200
+ peer 10.1.57.1 label-route-capability
+
+[ASBR4]
+mpls
+ lsp-trigger bgp-label-route
+
+int gi0/0/2
+ mpls
+
+bgp 200
+ peer 10.1.68.1 label-route-capability
+
+[RR2]
+bgp 200
+ pee 172.16.1.2 as 200
+ pee 172.16.1.2 conn loo0
+ pee 172.16.1.2 reflect
+ pee 172.16.1.11 as 200
+ pee 172.16.1.11 conn loo0
+ pee 172.16.1.11 reflect
+ pee 172.16.1.3 as 100
+ pee 172.16.1.3 conn loo0
+ pee 172.16.1.3 ebgp-max-hop 10
+ ipv4-f vpnv4
+  un pol vpn-tar
+  pee 172.16.1.2 en
+  pee 172.16.1.2 reflect
+  pee 172.16.1.2 next-hop-invariable
+#  pee 172.16.1.2 advertise-com
+  pee 172.16.1.11 en
+  pee 172.16.1.11 reflect
+  pee 172.16.1.11 next-hop-invariable
+#  pee 172.16.1.11 advertise-com
+  pee 172.16.1.3 en
+  pee 172.16.1.3 next-hop-invariable
+  pee 172.16.1.3 allow-as-loop
+  
+[PE3]
+bgp 200
+ pee 172.16.1.9 as 200
+ pee 172.16.1.9 conn loo0
+ ipv4-f vpnv4
+  pee 172.16.1.9 en
+ ipv4-f vpn-inst VPN1
+  imp ospf 2
+
+[PE4]
+bgp 200
+ pee 172.16.1.9 as 200
+ pee 172.16.1.9 conn loo0
+ ipv4-f vpnv4
+  pee 172.16.1.9 en
+ ipv4-f vpn-inst VPN1
+  imp ospf 2
+
+[CE1,CE2]
+bgp 65000
+ pref 120 255 255
+ 
+[CE1]
+ip community-f 1 perm 65000:4
+
+route-p B2O deny node 10
+ if-m community-f 1
+route-p B2O perm node 20
+ app tag 3
+ 
+route-p O2B deny node 10
+ if-m tag 3
+route-p B2O perm node 20
+ app comm 65000:4
+
+bgp 65000
+ pee 10.2.11.2 advertise-com
+ pee 10.2.11.6 advertise-com
+ imp ospf 1 route-p O2B
+
+ospf 1
+ imp bgp route-p B2O
+ 
+[CE2]
+ip community-f 1 perm 65000:4
+
+route-p B2O deny node 10
+ if-m community-f 1
+route-p B2O perm node 20
+ app tag 3
+ 
+route-p O2B deny node 10
+ if-m tag 3
+route-p B2O perm node 20
+ app comm 65000:4
+
+bgp 65000
+ pee 10.2.22.2 advertise-com
+ pee 10.2.22.6 advertise-com
+ imp ospf 1 route-p O2B
+
+ospf 1
+ imp bgp route-p B2O
+
+[PE3,PE4]
+acl num 2000
+ rule 10 perm sou 10.3.0.0 0.0.254.255
+acl num 2001
+ rule 10 perm sou 10.3.1.0 0.0.254.255
+acl num 2010
+ rule 10 perm sou 172.16.1.20 0
+acl num 2020
+ rule 10 perm sou 172.16.1.1 0
+
+route-p LP-VPN perm node 10
+ if-m acl 2000
+ if-m ip next-hop acl 2010
+ app local-pref 200
+route-p LP-VPN perm node 20
+ if-m acl 2001
+ if-m ip next-hop acl 2020
+ app local-pref 200
+route-p LP-VPN perm node 30
+ 
+bgp 200
+ ipv4-f vpnv4
+  pee 172.16.1.9 route-p LP-VPN imp
+
+
