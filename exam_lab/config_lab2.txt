@@ -116,10 +116,10 @@ int gi0/0/0
  ospf net p2p
 
 [PE4]
-acl 2010
+acl 2040
  rule 10 perm sou 172.16.1.2 0
 route-p L2O perm node 10
- if-m acl 2010
+ if-m acl 2040
 ospf 1
  imp direct type 1 route-pol L2O
  
@@ -706,4 +706,180 @@ bgp 200
  ipv4-f vpnv4
   pee 172.16.1.9 route-p LP-VPN imp
 
+4.1.1
+nqa test-inst NQA_ICMP
+ test-type icmp
+ dest opv4 100.0.1.2
+ freq 3
+ probe 1
+ sour gi2/0/1
+ start now
+ip route-s 0.0.0.0 0.0.0.0 100.0.1.2 track nqa NQA_ICMP
 
+4.1.2
+[CE1]
+bgp 65000
+ default-r imp
+ imp static
+ospf 1
+ default-route-advertise
+
+[PE3]
+ospf 2 vpn-inst VPN1
+ default-route-advertise
+
+[PE4]
+ospf 2 vpn-inst VPN1
+ default-route-advertise
+
+4.2.1
+[CE1]
+acl 2000
+ rule 10 deny sou 10.3.2.10 0
+ rule 20 perm sou 10.3.0.0 0.0.255.255
+nat addr 1 102.0.1.2 102.0.1.6
+int gi2/0/1
+ nat serv pro tcp glo 102.0.1.1 www inside 10.3.2.10
+ nat serv pro tcp glo 102.0.1.1 ftp inside 10.3.2.10
+ nat out 2000 addr 1
+ 
+4.3.1
+[CE1]
+time-r workday 08:00 to 18:00 working-day
+acl 3000
+ rule 10 perm tcp dest range 6881 6999 time-r workday
+traf class TCP operator or
+ if-m acl 3000
+traf behav CIR1M
+ car cir 1024
+traf pol CIR1M
+ class TCP behav CIR1M
+int gi2/0/1
+ traffic-p CIR1M out
+ 
+5.1.1
+[PE1]
+isis 1
+ ipv6 en top ipv6
+int loo0
+ isis ipv6 en 1
+int gi0/0/0
+ isis ipv6 en 1
+ isis ipv6 cost 20
+int gi0/0/2
+ isis ipv6 en 1
+ isis ipv6 cost 1550
+
+[PE2]
+isis 1
+ ipv6 en top ipv6
+int loo0
+ isis ipv6 en 1
+int gi0/0/0
+ isis ipv6 en 1
+ isis ipv6 cost 20
+int gi0/0/2
+ isis ipv6 en 1
+ isis ipv6 cost 1500
+
+[RR1]
+isis 1
+ ipv6 en top ipv6
+int loo0
+ isis ipv6 en 1
+int gi0/0/0
+ isis ipv6 en 1
+ isis ipv6 cost 80
+int gi0/0/1
+ isis ipv6 en 1
+ isis ipv6 cost 860
+int gi0/0/2
+ isis ipv6 en 1
+ isis ipv6 cost 1550
+
+[P1]
+isis 1
+ ipv6 en top ipv6
+int loo0
+ isis ipv6 en 1
+int gi0/0/0
+ isis ipv6 en 1
+ isis ipv6 cost 80
+int gi0/0/1
+ isis ipv6 en 1
+ isis ipv6 cost 1000
+int gi0/0/2
+ isis ipv6 en 1
+ isis ipv6 cost 1500
+
+[ASBR1]
+isis 1
+ ipv6 en top ipv6
+int loo0
+ isis ipv6 en 1
+int gi0/0/0
+ isis ipv6 en 1
+ isis ipv6 cost 100
+int gi0/0/1
+ isis ipv6 en 1
+ isis ipv6 cost 860
+
+[ASBR2]
+isis 1
+ ipv6 en top ipv6
+int loo0
+ isis ipv6 en 1
+int gi0/0/0
+ isis ipv6 en 1
+ isis ipv6 cost 100
+int gi0/0/1
+ isis ipv6 en 1
+ isis ipv6 cost 1000
+
+5.3.1
+[ASBR1]
+bgp 100
+ peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:5701 as-number 200
+ peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DCA3 as-number 100
+ peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DCA3 connect-interface LoopBack0
+ ipv6-family unicast
+  peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:5701 enable
+  peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DCA3 enable
+  
+[ASBR3]
+bgp 200
+ peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:5700 as-number 100
+ ipv6-family unicast
+  peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:5700 enable
+  
+[RR1]
+bgp 100
+ peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DCA5 as-number 100
+ peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DCA5 connect-interface LoopBack0
+ ipv6-family unicast
+  peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DCA5 enable
+
+5.3.2
+[ASBR1]
+acl ipv6 name PR1
+ rule 10 perm ipv6 sou 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DC00/120
+bgp 100
+ ipv6-f uni
+   imp isis 1
+   pee 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:5701 filter-p acl6-name PR1 exp
+   pee 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DCA3 next-hop-local
+
+[ASBR3]
+bgp 200
+ ipv6-f uni
+  net 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DCA7 128
+
+5.3.3  
+[RR1,P1]
+isis 1
+ ipv6 imp isis level-2 into level-1
+
+5.3.4
+[PE1]
+isis 1
+ set-overload on-startup wait=for-bgp
