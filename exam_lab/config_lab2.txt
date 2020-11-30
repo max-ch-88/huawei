@@ -1,12 +1,17 @@
+1.1.1
+Assume that S1 does not support LACP. Bundle GE0/0/23 and GE0/0/24 connecting S1 and S2 into a logical Layer 2 interface, and configure member interfaces to load balance traffic based
+on the source and destination MAC addresses
 [S1, S2]
-int eth-tr0
- load-b src-dst-mac
-int gi0/0/23
- eth-tr0
-int gi0/0/24
- eth-tr0
+int eth0
+ trunkport gi0/0/23
+ trunkport gi0/0/24
+ loa src-dst-mac
 
+1.2.1
+Set the link type of interfaces connecting S1, S2, S3, and S4 to trunk, and configure the interfaces to allow packets of all VLANs except VLAN 1 to pass through.
 [S1, S2]
+vlan batch 10 20
+
 int eth-tr0
  port link-t trunk
  port trunk allow vlan all
@@ -33,6 +38,10 @@ int gi0/0/2
  port trunk allow vlan all
  undo port trunk allow vlan 1
 
+1.2.2
+The VRRP group configured on CE1 and CE2 is assigned the virtual IP address 10.3.1.254, and functions as the gateway for PC1. CE1 periodically sends gratuitous ARP packets with sender
+IP address as 10.3.1.254 and source MAC address as 00-00-5E-00-01-01. The data frames transmitted between PC1 and the gateway are tagged with VLAN 10 (PC sends and receives
+untagged frames)
 [CE1]
 int gi0/0/2.10
  vrrp vrid 1 virt 10.3.1.254
@@ -115,6 +124,7 @@ ospf 1
 int gi0/0/0
  ospf net p2p
 
+2.3.2
 [PE4]
 acl 2040
  rule 10 perm sou 172.16.1.2 0
@@ -122,17 +132,26 @@ route-p L2O perm node 10
  if-m acl 2040
 ospf 1
  imp direct type 1 route-pol L2O
- 
+
+2.3.3 
 [RR2,P2]
 int gi0/0/0
  isis circuit-t p2p
 
+2.3.4
 [P1]
 isis 1
  timer lsp-gen 1 50 50
  flash-flood
  timer spf 1 100 100
 
+3.1
+CE1 and CE2 are hub CEs in VPN1, and PE1 and PE2 are hub PEs. CE3 and CE4 are spoke CEs in VPN1 and PE3 and PE4 are spoke PEs
+3.2
+CE4 is a multi-VPN-instance customer edge (MCE), the VRF instance for СЕ4 is VPN1, and CE4 is connected to PE4 through GE0/0/1
+3.3
+Set parameters for VPN1 properly so that the traffic between spoke devices must pass through the hub CEs. Adjust RT attributes of PE1, if the link between CE1 and PE1 is disconnected, PE1
+can still learn the route to CE1. (The RD of VPN1 on PE3 is 100:13, the export RT is 100:1, and the import RT is 200:1)
 [PE1]
 ip vpn-inst VPN1-in
  route-d 100:11
@@ -163,6 +182,7 @@ ip vpn-inst VPN1
  vpn-t 100:1 export-ext
  vpn-t 200:1 import-ext
 
+3.4
 [CE1]
 bgp 65000
  pee 10.2.11.2 as 100
@@ -268,6 +288,7 @@ ospf 2 vpn-inst VPN1
  area 0.0.0.0
   net 10.2.41.0 0.0.0.3
 
+3.8
 [ASBR1]
 acl 2001
  rule 10 perm sou 172.16.0.1 0.0.255.254
@@ -448,6 +469,7 @@ route-p B2I perm node 10
  app tag 700
  app cost 0
 
+3.9
 [PE4]
 route-p L2O perm node 10
  app tag 900
@@ -506,6 +528,7 @@ ospf 1
  imp isis 1 type 1 route-p I2O
  pref ase route-p ASE 150
 
+3.10
 [PE1]
 bgp 100
  pee 172.16.1.3 as 100
@@ -636,10 +659,12 @@ bgp 200
  ipv4-f vpn-inst VPN1
   imp ospf 2
 
+3.11
 [CE1,CE2]
 bgp 65000
  pref 120 255 255
  
+3.12
 [CE1]
 ip community-f 1 perm 65000:4
 
@@ -707,6 +732,7 @@ bgp 200
   pee 172.16.1.9 route-p LP-VPN imp
 
 4.1.1
+[CE1]
 nqa test-inst NQA_ICMP
  test-type icmp
  dest opv4 100.0.1.2
