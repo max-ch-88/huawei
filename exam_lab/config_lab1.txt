@@ -1,0 +1,788 @@
+1.1.1
+[S1,S2]
+int eth0
+ trunkport gi0/0/23
+ trunkport gi0/0/24
+ loa src-dst-mac
+
+1.2.1
+[S1,S2]
+int eth0, gi0/0/1, gi0/0/12
+ port link trunk
+ port tru all vlan 2 to 4094
+int gi0/0/2
+ port link trunk
+ port tru all vlan all
+ 
+
+[S3,S4]
+int gi0/0/1, gi0/0/2
+ port link trunk
+ port tru all vlan 2 to 4094
+
+1.2.2
+ dot1q term vid
+ arp broad en
+ vlan batch 10 20
+
+[CE1]
+int gi0/0/2.10
+ vrrp vrid 1 virt 10.3.1.254
+ vrrp vrid 1 prio 120
+
+[CE2]
+int gi0/0/2.10
+ vrrp vrid 1 virt 10.3.1.254
+
+[S3]
+vlan batch 10 20
+int eth0/0/1
+ port link-t acc
+ port def vlan 10
+
+1.2.3
+[CE1]
+int gi0/0/2.20
+ vrrp vrid 2 virt 10.3.2.254
+
+[CE2]
+int gi0/0/2.20
+ vrrp vrid 2 virt 10.3.2.254
+ vrrp vrid 2 prio 120
+
+[S4]
+vlan batch 10 20
+int eth0/0/1
+ port link-t acc
+ port def vlan 20
+
+1.2.4
+[CE1]
+int gi0/0/2.10
+ vrrp vrid 1 pree tim del 60
+
+[CE2]
+int gi0/0/2.20
+ vrrp vrid 2 pree tim del 60
+
+1.3.1
+[S1-S4]
+stp reg
+ reg HUAWEI
+ rev 12
+ inst 10 vlan 10
+ inst 20 vlan 20
+ act reg
+
+[S1]
+stp inst 10 root pri
+stp inst 20 root sec
+
+[S2]
+stp inst 20 root pri
+stp inst 10 root sec
+
+1.3.2
+[S1,S2]
+stp edg def
+int eth0, gi0/0/1, gi0/0/12
+ stp edg dis
+
+[S3,S4]
+stp edg def
+int gi0/0/1, gi0/0/2
+ stp edg dis
+
+1.4.1
+[PE3,CE3]
+int mp-g0/0/0
+ ip addr 10.2.33.1 30
+int pos4/0/0
+ link ppp
+ ppp mp mp-g0/0/0
+int pos6/0/0
+ link ppp
+ ppp mp mp-g0/0/0
+ 
+2.2.2
+Advertise IP addresses of GE0 0/0/2.10 and GEO/0/2.20 on яе1 and CE2 to OSPF area 0, and disable these interfaces from sending or receiving OSPF packets. 
+
+[CE1,CE2]
+ospf 1
+ silent gi0/0/2.10
+ silent gi0/0/2.20
+ area 0
+  net 10.3.1.0 0.0.0.255
+  net 10.3.2.0 0.0.0.255
+
+2.2.4
+Set the network type of OSPF interconnection interfaces between PE3 and PE4 to P2P.
+
+[PE3,PE4]
+int gi0/0/0
+ ospf net p2p
+
+2.2.5
+Import the IP address of Loopback 0 on PE4 to OSPF. In AS 200, the route from each OSPF NE to Loopback 0 on PE4 should contain the internal cost
+
+acl 2000
+ rule 10 perm sou 172.16.1.2 0
+route-p L2O perm node 10
+ if-m acl 2000
+ospf 1
+ imp dir type 1 rou L2O
+
+2.3.3
+Set the network type of IS-IS interconnection interfaces between RR2 and P2 to P2P. 
+
+[RR2,P2]
+int gi0/0/0
+ isis circuit-type p2p
+
+2.3.4
+On RR2 and P2, import IS-IS and OSPF host routes with the prefix of 172.16.0.0/16 into each other. The cost of the imported protocol needs to be inherited. Loopback 0 interfaces of P2 and
+PE4 communicate with each other through the optimal path. The configuration should have the best scalability to solve issue caused by dual-node bi-directional route importing.
+[PE4]
+route-p L2I perm node 10
+ app tag 900 
+
+
+[RR2]
+ip ip-pre Loopbacks ind 10 per 172.16.0.0 16 gre 32
+
+route-p O2I den node 10
+ if-m tag 100 
+route-p O2I per node 20
+ if-m ip-pref Loopbacks 
+ app tag 200
+
+route-p I2O den node 10
+ if-m tag 300 
+route-p I2O per node 20
+ if-m ip-pref Loopbacks 
+ app tag 400
+
+route-p ASE per node 10
+ if-m tag 900
+ app preference 13
+
+isis 1
+ imp ospf 1 inher rout O2I
+
+ospf 1
+ imp isis 1 type 1 rout I2O
+ def cost inher
+ preference ase rout ASE 150
+
+[P2]
+ip ip-pre Loopbacks ind 10 per 172.16.0.0 16 gre 32
+
+route-p O2I den node 10
+ if-m tag 400 
+route-p O2I per node 20
+ if-m ip-pref Loopbacks 
+ app tag 300
+
+route-p I2O den node 10
+ if-m tag 200 
+route-p I2O per node 20
+ if-m ip-pref Loopbacks 
+ app tag 100
+
+route-p ASE per node 10
+ if-m tag 900
+ app preference 13
+
+isis 1
+ imp ospf 1 inher rout O2I
+
+ospf 1
+ imp isis 1 type 1 rout I2O
+ def cost inher
+ preference ase rout ASE 150
+
+2.3.5
+Perform the following configurations in IS-IS process on P1: The maximum delay for generating an LSP is 1s, the initial delay is 50ms, and the incremental delay is 50ms. The fast LSP
+flooding function is enabled. The maximum delay in SPF calculation is 1s, the initial delay is 100ms, and the incremental delay is 100ms
+
+[P1]
+isis
+ flash-flood
+ timer lsp-generation 1 50 50
+ timer spf 1 100 100
+
+3.1
+CE1 and CE2 are hub CEs in VPN1, and PE1 and PE2 are hub PEs. CE3 and CE4 are spoke CEs in VPN1 and PE3 and PE4 are spoke PEs.
+3.2
+CE4 is a multi-VPN-instance customer edge (MCE), the VRF instance for яе4 is VPN1, and CE4 is connected to PE4 through GE0/0/1.
+3.3
+Set parameters for VPN1 properly so that the traffic between spoke devices must pass through the hub CEs. Adjust RT attributes of PE1, if the link between CE1 and PE1 is disconnected, PE1
+can still learn the route to CE1. (The RD of VPN1 on PE3 is 100:13, the export RT is 100:1, and the import RT is 200:1).
+
+[PE1]
+ip vpn-inst VPN1-in
+ route-d 100:11
+ vpn-t 100:1 200:1 imp
+ip vpn-inst VPN1-out
+ route-d 100:12
+ vpn-t 200:1 exp
+
+[PE2]
+ip vpn-inst VPN1-in
+ route-d 100:21
+ vpn-t 100:1 imp
+ip vpn-inst VPN1-out
+ route-d 100:22
+ vpn-t 200:1 exp
+
+[PE3]
+ip vpn-inst VPN1
+ route-d 100:13
+ vpn-t 100:1 exp
+ vpn-t 200:1 imp
+
+[PE3]
+ip vpn-inst VPN1
+ route-d 100:2
+ vpn-t 100:1 exp
+ vpn-t 200:1 imp
+
+3.4
+On the network shown in Figure 4, configure CE1 to establish direct EBGP peer relationships with PE1 through GE0/0/1.1 and GE0/0/1.2. CE1 advertise the routes of Spoke sites back to PE1
+through GE0/0/1.2. On CE1, import OSPF routes to BGP.
+3.5
+Configure CE2 to establish direct EBGP peer relationships with PE2 through GE0/0/1.1 and GE0/0/1.2. CE2 advertise the routes of Spoke sites back to PE2 through GE0/0/1.2. On CE2,
+import OSPF routes to BGP.
+
+[CE1,CE2]
+bgp 65000
+ peer 10.2.11.2 as-number 100
+ peer 10.2.11.6 as-number 100
+ peer 10.2.11.2 advertise-community
+ peer 10.2.11.6 advertise-community
+ import-route ospf 1
+
+[PE1,PE2]
+interface GigabitEthernet0/0/1.1
+ ip binding vpn-instance VPN1-in
+ ip address 10.2.11.2 255.255.255.252
+interface GigabitEthernet0/0/1.2
+ ip binding vpn-instance VPN1-out
+ ip address 10.2.11.6 255.255.255.252
+
+bgp 100
+ipv4-family vpn-instance VPN1-in
+ peer 10.2.11.1 as-number 65000
+ peer 10.2.11.1 advertise-community
+
+ipv4-family vpn-instance VPN1-out
+ peer 10.2.11.5 as-number 65000
+ peer 10.2.11.5 advertise-community
+ peer 10.2.11.5 allow-as-loop
+
+3.6
+Configure CE3 to connect to PE3 through OSPF area 1 and logical interfaces created in step 2 of task 1.4, and advertise IP addresses of loopback interfaces on CE3 to OSPF area 1.
+Configure CE4 to connect to PE4 through OSPF area 0 and GE0/0/1 interfaces, and advertise IP addresses of loopback interfaces on CE4 to OSPF area 0.
+
+[CE3]
+ospf 1
+ area 0.0.0.1
+  net 10.2.33.0 0.0.0.3
+  net 10.3.3.3 0.0.0.0
+  net 172.17.1.3 0.0.0.0
+
+[PE3]
+interface Mp-group0/0/0
+ ip binding vpn-instance VPN1
+ ip address 10.2.33.2 255.255.255.252
+
+ospf 2 vpn-instance VPN1
+ import-route bgp
+ area 0.0.0.1
+  net 10.2.33.0 0.0.0.3
+
+[CE4]
+ip vpn-instance VPN1
+ ipv4-family
+  route-d 1:1
+
+ospf 2 vpn-instance VPN1
+ vpn-instance-capability simple
+ area 0.0.0.0
+  net 10.2.41.0 0.0.0.3
+  net 172.17.1.4 0.0.0.0
+  net 10.3.3.4 0.0.0.0
+
+interface GigabitEthernet0/0/1
+ ip binding vpn-instance VPN1
+ ip address 10.2.41.1 255.255.255.252
+
+interface loo0
+ ip binding vpn-instance VPN1
+ ip address 172.17.1.4 255.255.255.255
+
+interface loo1
+ ip binding vpn-instance VPN1
+ ip address 10.3.3.4 255.255.255.255
+
+[PE4]
+interface GigabitEthernet0/0/1
+ ip binding vpn-instance VPN1
+ ip address 10.2.41.2 255.255.255.252
+
+ospf 2 vpn-instance VPN1
+ import-route bgp
+ area 0.0.0.0
+  network 10.2.41.0 0.0.0.3
+
+3.7
+As shown in Figure 4, devices in AS 100 and AS 200 establish IBGP IPv4 peer relationships with RRs. RR1 is the RR of PE1, PE2, PI, ASBR1, and ASBR2. 
+RR2 is the RR of пег, PE4, P2, ASBR3, and ASBR4. EBGP IPv4 peer relationships are established between ASBR1 and ASBR3 and between ASBR2 and ASBR4.
+
+[PE1, PE2, P1]
+bgp 100
+ peer 172.16.1.3 as-number 100
+ peer 172.16.1.3 connect-interface LoopBack0
+
+[RR1]
+bgp 100
+ peer 172.16.1.1 as-number 100
+ peer 172.16.1.1 connect-interface LoopBack0
+ peer 172.16.1.4 as-number 100
+ peer 172.16.1.4 connect-interface LoopBack0
+ peer 172.16.1.5 as-number 100
+ peer 172.16.1.5 connect-interface LoopBack0
+ peer 172.16.1.6 as-number 100
+ peer 172.16.1.6 connect-interface LoopBack0
+ peer 172.16.1.20 as-number 100
+ peer 172.16.1.20 connect-interface LoopBack0
+ peer 172.16.1.1 reflect-client
+ peer 172.16.1.4 reflect-client
+ peer 172.16.1.5 reflect-client
+ peer 172.16.1.6 reflect-client
+ peer 172.16.1.20 reflect-client
+ ipv4-family vpnv4
+  peer 172.16.1.1 en
+  peer 172.16.1.1 advertise-community
+  peer 172.16.1.20 en
+  peer 172.16.1.20 advertise-community
+
+[ASBR1, ASBR2]
+bgp 100
+ peer 10.1.68.2 as-number 200
+ peer 172.16.1.3 as-number 100
+ peer 172.16.1.3 connect-interface LoopBack0
+ peer 172.16.1.3 next-hop-local
+
+[ASBR3, ASBR4]
+bgp 200
+ peer 10.1.68.1 as-number 100
+ peer 172.16.1.9 as-number 200
+ peer 172.16.1.9 connect-interface LoopBack0
+ peer 172.16.1.9 next-hop-local
+
+[RR2]
+bgp 200
+ peer 172.16.1.2 as-number 200
+ peer 172.16.1.2 connect-interface LoopBack0
+ peer 172.16.1.7 as-number 200
+ peer 172.16.1.7 connect-interface LoopBack0
+ peer 172.16.1.8 as-number 200
+ peer 172.16.1.8 connect-interface LoopBack0
+ peer 172.16.1.10 as-number 200
+ peer 172.16.1.10 connect-interface LoopBack0
+ peer 172.16.1.11 as-number 200
+ peer 172.16.1.11 connect-interface LoopBack0
+ peer 172.16.1.2 reflect-client
+ peer 172.16.1.7 reflect-client
+ peer 172.16.1.8 reflect-client
+ peer 172.16.1.10 reflect-client
+ peer 172.16.1.11 reflect-client
+
+[PE3, PE4, P2]
+bgp 200
+ peer 172.16.1.9 as-number 200
+ peer 172.16.1.9 connect-interface LoopBack0
+
+3.8
+On ASBRs, import IS-IS routes of Loopback 0 interfaces to BGP.
+
+[ASBR1, ASBR2, ASBR3, ASBR4]
+ip ip-prefix LO index 10 permit 172.16.0.0 16 greater-equal 32 less-equal 32
+
+route-policy I2B permit node 10
+ if-match ip-prefix LO
+  apply cost 0
+
+bgp 200
+ import-route isis 1 route-policy I2B
+
+3.10
+On the network shown in Figure 4, configure NEs to learn routes from each other through inter-AS MPLS BGP VPN Option я Solution 1. The MPLS domain cannot have sub-optimal paths.
+
+[PE1,PE2]
+bgp 100
+ peer 172.16.1.3 label-route-capability
+ ipv4-family vpnv4
+  peer 172.16.1.3 enable
+  peer 172.16.1.3 advertise-community
+
+[RR1]
+isis 1
+ import-route isis level-2 into level-1
+
+bgp 100
+ peer 172.16.1.9 as-number 200
+ peer 172.16.1.9 ebgp-max-hop 10
+ peer 172.16.1.9 connect-interface LoopBack0
+ peer 172.16.1.1 label-route-capability
+ peer 172.16.1.5 label-route-capability
+ peer 172.16.1.6 label-route-capability
+ peer 172.16.1.20 label-route-capability
+ ipv4-family vpnv4
+  undo policy vpn-target
+  peer 172.16.1.1 enable
+  peer 172.16.1.1 reflect-client
+  peer 172.16.1.1 next-hop-invariable
+  peer 172.16.1.9 enable
+  peer 172.16.1.9 next-hop-invariable
+  peer 172.16.1.20 enable
+  peer 172.16.1.20 reflect-client
+  peer 172.16.1.20 next-hop-invariable
+
+[P1]
+isis 1
+ import-route isis level-2 into level-1
+
+[ASBR1, ASBR2, ASBR3, ASBR4]
+interface GigabitEthernet0/0/2
+ mpls
+
+route-policy APPLY_LU permit node 10
+ apply mpls-label
+
+route-policy ReAPPLY_LU permit node 10
+ if-match mpls-label
+  apply mpls-label
+
+bgp 200
+ peer 10.1.68.1 route-policy APPLY_LU export
+ peer 10.1.68.1 label-route-capability
+ peer 172.16.1.9 route-policy ReAPPLY_LU export
+ peer 172.16.1.9 label-route-capability
+
+
+[RR2]
+bgp 200
+ peer 172.16.1.3 as-number 100
+ peer 172.16.1.3 ebgp-max-hop 10
+ peer 172.16.1.3 connect-interface LoopBack0
+ peer 172.16.1.2 label-route-capability
+ peer 172.16.1.7 label-route-capability
+ peer 172.16.1.8 label-route-capability
+ peer 172.16.1.11 label-route-capability
+ ipv4-family vpnv4
+  undo policy vpn-target
+  peer 172.16.1.2 enable
+  peer 172.16.1.2 reflect-client
+  peer 172.16.1.2 next-hop-invariable
+  peer 172.16.1.3 enable
+  peer 172.16.1.3 next-hop-invariable
+  peer 172.16.1.3 allow-as-loop
+  peer 172.16.1.11 enable
+  peer 172.16.1.11 reflect-client
+  peer 172.16.1.11 next-hop-invariable
+
+[PE3, PE4]
+bgp 200
+ peer 172.16.1.9 label-route-capability
+ ipv4-family vpnv4
+  peer 172.16.1.9 enable
+ ipv4-family vpn-instance VPN1
+  import-route ospf 2
+
+3.11
+On CE1 and CE2, configure preference of EBGP as 120.
+
+[CE1, CE2]
+bgp 65000
+ preference 120 255 255
+
+3.12
+On CE1 and CE2, import BGP routes to OSPF. The configuration should have the best scalability to solve issue caused by dual-node bi-directional route importing.
+
+[CE1, CE2]
+ip community-filter 1 permit 65000:4
+
+route-policy B2O deny node 10
+ if-match community-filter 1
+
+route-policy B2O permit node 20
+ apply tag 3
+
+route-policy O2B deny node 10
+if-match tag 3
+
+route-policy O2B permit node 20
+ apply community 65000:4
+
+bgp 65000
+ peer 10.2.22.2 advertise-community
+ peer 10.2.22.6 advertise-community
+ import-route ospf 1 route-policy O2B
+
+ospf 1
+ import-route bgp route-policy B2O
+
+3.13
+Modify the BGP Local-Preference attribute on PE3 and PE4, so that when CE3 and CE4 access the non-directly connected network segment 10.3.X.0/24, PE3 and PE4 preferentially select
+PEI as the next top if X is an odd number, or preferentially select PE2 as the next hop if X is an even number. Consistency of the round-trip paths does not need to be considered.
+
+[PE3, PE4]
+acl number 2000
+ rule 5 permit source 10.3.0.0 0.0.254.255
+acl number 2001
+ rule 5 permit source 10.3.1.0 0.0.254.255
+acl number 2010
+ rule 5 permit source 172.16.1.20 0
+acl number 2020
+ rule 5 permit source 172.16.1.1 0
+
+route-policy LP_VPN permit node 10
+ if-match acl 2000
+ if-match ip next-hop acl 2010
+ apply local-preference 200
+
+route-policy LP_VPN permit node 20
+ if-match acl 2001
+ if-match ip next-hop acl 2020
+ apply local-preference 200
+
+route-policy LP_VPN permit node 30
+
+bgp 200
+ ipv4-family vpnv4
+  peer 172.16.1.9 route-policy LP_VPN import
+
+4.1.1
+Configure a static default route on CE1 to access the ISP device, with next-hop IP address as 100.0.1.2. The static default route should be bound to the BFD session between CE1 and the ISP
+device (the ISP device does not support BFD). The fault detection time should be not more than 150 ms. 
+
+[CE1]
+bfd
+
+bfd 1 bind peer-ip 100.0.1.2 interface GigabitEthernet2/0/1 one-arm-echo
+ discriminator local 1
+ min-echo-rx-interval 40
+ commit
+
+ip route-static 0.0.0.0 0.0.0.0 100.0.1.2 track bfd-session 1
+
+4.1.2
+CE2, CE3 and CE4 can learn default route generated by CE1. 
+
+[CE1]
+bgp 65000
+ default-route imported
+ import-route static
+ospf 1
+ default-route-advertise
+
+[PE3, PE4]
+ospf 2 vpn-instance VPN1
+ default-route-advertise
+
+4.2.1
+Configure NAT on CE1 to translate the private IP address segment of 10.3.0.0/16 (excluding 10.3.2.10) to public IP addresses in the range from 102.0.1.2 to 102.0.1.6, and configure CE1 to
+access the ISP device through GE2/0/1. Configure dedicated public IP address, that is, 102.0.1.1, for Server1 that provides FTP and HTTP services for the ISP device.
+
+[CE1]
+acl number 2000
+ rule 3 deny source 10.3.2.10 0
+ rule 5 permit source 10.3.0.0 0.0.255.255
+
+nat address-group 1 102.0.1.2 102.0.1.6
+
+Interface g2/0/1
+ nat server protocol tcp global 102.0.1.1 www inside 10.3.2.10 www
+ nat server protocol tcp global 102.0.1.1 ftp inside 10.3.2.10 ftp
+ nat outbound 2000 address-group 1
+
+4.3.1
+Set the CIR to 1 Mbit/s for outgoing traffic with the destination TCP Пort number in the range from 6881 to 6999 on GE2/0/1 of CE1, and configure this QoS policy to take effect during 08:00
+to 18:00 on Monday to Friday.
+
+[CE1]
+time-range workday 08:00 to 18:00 working-day
+
+acl number 3000
+ rule 5 permit tcp destination-port range 6881 6999 time-range workday
+
+traffic classifier TCP operator or
+ if-match acl 3000
+
+traffic behavior CIR_1M
+ car cir 1024
+
+traffic policy CIR_1M
+ classifier TCP behavior CIR_1M
+
+interface GigabitEthernet2/0/1
+ traffic-policy CIR_1M outbound
+
+4.3.2
+The following table lists the QoS plan for services between CE4 and PE4.
+Configure GE0/0/1 of CE4 to mark 802.1p values for outgoing traffic. Configure GE0/0/1 of PE4 to retain 802.1p values in incoming traffic sent from CE4, and configure the mapping from 802.1p
+values to DSCP values. 
+
+[CE4]
+acl number 3001
+ rule 5 permit ip destination 10.3.1.0 0.0.0.255
+acl number 3002
+ rule 5 permit ip destination 10.3.2.0 0.0.0.255
+acl number 3003
+ rule 5 permit ip destination 10.3.3.0 0.0.0.255
+acl number 3004
+ rule 5 permit ip destination 10.3.4.0 0.0.0.255
+
+traffic classifier c4 operator or
+ if-match acl 3004
+traffic classifier c2 operator or
+ if-match acl 3002
+traffic classifier c3 operator or
+ if-match acl 3003
+traffic classifier c1 operator or
+ if-match acl 3001
+
+traffic behavior b4
+ remark 8021p 2
+traffic behavior b2
+ remark 8021p 4
+traffic behavior b3
+ remark 8021p 3
+traffic behavior b1
+ remark 8021p 5
+
+traffic policy p1
+ classifier c1 behavior b1
+ classifier c2 behavior b2
+ classifier c3 behavior b3
+ classifier c4 behavior b4
+
+interface GigabitEthernet0/0/1
+ traffic-policy p1 outbound
+
+[PE4]
+traffic classifier c4 operator or
+ if-match 8021p 2
+traffic classifier c3 operator or
+ if-match 8021p 3
+traffic classifier c2 operator or
+ if-match 8021p 4
+traffic classifier c1 operator or
+ if-match 8021p 5
+
+traffic behavior b4
+ remark dscp cs2
+traffic behavior b2
+ remark dscp cs4
+traffic behavior b3
+ remark dscp cs3
+traffic behavior b1
+ remark dscp ef
+
+traffic policy p1
+ classifier c1 behavior b1
+ classifier c2 behavior b2
+ classifier c3 behavior b3
+ classifier c4 behavior b4
+
+interface GigabitEthernet0/0/1
+ trust 8021p
+ traffic-policy p1 inbound
+
+4.3.3
+Configure congestion management and congestion avoidance for packets matching DSCP values on GE0/0/0 and GE0/0/2 of PE4 according to Table 1. 
+
+[PE4]
+drop-profile 1
+ wred dscp
+ dscp default low-limit 50 high-limit 80 discard-percentage 50
+ dscp cs2 low-limit 50 high-limit 80 discard-percentage 50
+ dscp cs3 low-limit 50 high-limit 90 discard-percentage 50
+ dscp cs4 low-limit 70 high-limit 100 discard-percentage 50
+
+qos queue-profile q1
+ queue 0 weight 1
+ queue 2 weight 9
+ queue 3 weight 21
+ queue 4 weight 63
+ schedule wfq 0 to 4 pq 5
+ queue 0 drop-profile 1
+ queue 2 to 4 drop-profile 1
+
+interface GigabitEthernet0/0/0
+ qos queue-profile q1
+
+interface GigabitEthernet0/0/2
+ qos queue-profile q1
+
+5.2.1
+On the network shown in Figure 6, configure PE1, PE2, RR1 P1, ASBR1 and ASBR2 to run IS-IS. Advertise the directly connected network segments to IS-IS and configure the cost of each
+link. 
+
+[PE1]
+isis
+ipv6 enable topology ipv6
+
+interface LoopBack0
+ isis ipv6 enable 1
+
+interface GigabitEthernet0/0/0
+ isis ipv6 enable 1
+ isis ipv6 cost 20
+
+interface GigabitEthernet0/0/2
+ isis ipv6 enable 1
+ isis ipv6 cost 1550
+
+5.3.1
+In Figure 7, configure ASBR1 and ASBR3 to establish an EBGP4+ peer relationship through the direct link, configure ASBR1 and RR1 to establish an IBGP4+ peer relationship through the
+loopback 0. PE1, PE2, and P1 have been pre-configured as IBGP4+ clients of RR1.
+
+[ASBR1]
+bgp 100
+ peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:5701 as-number 200
+ peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DCA3 as-number 100
+ peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DCA3 next-hop-local
+ peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DCA3 connect-interface LoopBack0
+ ipv6-family unicast
+  peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:5701 enable
+  peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DCA3 enable
+
+5.3.2
+On ASBR1, import IS-IS IPv6 routes to BGP4+ and advertise only the route with the prefix of 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DC00/120 to ASBR3 (with filter-policy
+command). Advertise the IP address of Loopback 0 on ASBR3 to BGP4+
+
+[ASBR1]
+acl ipv6 name PR1
+ rule 5 permit ipv6 source 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:DC00/120
+bgp 100
+ ipv6-family unicast
+  import-route isis 1
+  peer 2000:EAD8:99EF:CC3E:B2AD:9EFF:32DD:5701 filter-policy acl6-name PR1 export
+
+5.3.3
+Configure PE1 and PE2 to learn the BGP4+ specific route to ASBR3's Loopback 0. 
+
+[RR1, P1]
+isis 1
+ ipv6 import-route isis level-2 into level-1
+
+5.3.4
+Enable a feature on PE1 to ensure that no packet loss occurs when IPv6 ping from PE2 to ASBR3 is performed during the startup process (from the physical interface Up to the peer
+relationship establishment of each protocol) on PE1. 
+
+[PE1]
+isis 1
+ set-overload on-startup wait-for-bgp
